@@ -23,6 +23,7 @@ scripts/
   status.ts                      print live market and Scheduler state
   create-demo-market.ts          create a market against a public JSON oracle
   market-presets.ts              CLI market defaults
+  local-demo.ts                   end-to-end flow against a local Hardhat node
 ```
 
 ## Local verification
@@ -55,6 +56,15 @@ Current local suite: **16 Solidity tests**. It covers:
 - protection against rescue overwriting a resolved market.
 
 The tests use `vm.etch` to install mocks at Ritual's canonical system/precompile addresses, so local validation does not require a funded account or live RPC.
+
+For an explicit local-node walkthrough, run these in two terminals:
+
+```bash
+pnpm hardhat node
+pnpm hardhat run scripts/local-demo.ts
+```
+
+`local-demo.ts` installs mock runtimes at the canonical Ritual addresses, deploys `RitualPredict`, creates a market, places YES/NO bets, resolves through the Scheduler + HTTP + JQ path, claims the winning payout, and exits with `LOCAL DEMO PASS`.
 
 ## Ritual testnet configuration
 
