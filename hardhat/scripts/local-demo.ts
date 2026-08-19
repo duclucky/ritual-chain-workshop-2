@@ -1,4 +1,6 @@
 import { network } from "hardhat";
+import { mkdir, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { formatEther, parseEther, stringToHex } from "viem";
 import { assertRitualNetwork } from "./ritual.ts";
 
@@ -53,6 +55,17 @@ console.log("");
 console.log("── Deploy and create market ───────────────────────────────");
 const predict = await viem.deployContract("RitualPredict", [1000n]);
 console.log(`RitualPredict: ${predict.address}`);
+await predict.write.fundExecution([500_000n], { value: parseEther("0.5") });
+console.log("Execution funding: 0.5 RITUAL");
+
+const webPublicDir = resolve(process.cwd(), "../web/public");
+await mkdir(webPublicDir, { recursive: true });
+await writeFile(
+  resolve(webPublicDir, "local-demo.json"),
+  JSON.stringify({ address: predict.address, rpcUrl: "http://127.0.0.1:8545", chainId: 1979 }, null, 2),
+  "utf8",
+);
+console.log("Web runtime config: ../web/public/local-demo.json");
 
 await predict.write.createMarket([
   {
