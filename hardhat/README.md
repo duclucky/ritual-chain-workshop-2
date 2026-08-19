@@ -65,7 +65,7 @@ pnpm hardhat node --chain-id 1979
 pnpm hardhat run scripts/local-demo.ts
 ```
 
-`local-demo.ts` installs mock runtimes at the canonical Ritual addresses, verifies the Ritual network identity guard, deploys `RitualPredict`, creates a market, places YES/NO bets, resolves through the Scheduler + HTTP + JQ path, claims the winning payout, and exits with `LOCAL DEMO PASS`. The explicit `--chain-id 1979` is required because Hardhat node defaults to 31337.
+`local-demo.ts` installs mock runtimes at the canonical Ritual addresses, verifies the Ritual network identity guard, deploys `RitualPredict`, funds 0.5 RITUAL of execution balance, creates a market, places YES/NO bets, resolves through the Scheduler + HTTP + JQ path, claims the winning payout, writes `../web/public/local-demo.json`, and exits with `LOCAL DEMO PASS`. The explicit `--chain-id 1979` is required because Hardhat node defaults to 31337.
 
 ## Network identity safety
 

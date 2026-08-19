@@ -128,3 +128,35 @@ pnpm test
 ```
 
 The current suite has **20 passing tests** (16 Solidity + 4 Node.js) covering success, retry failure, malformed async responses, missing executors, empty JQ output, empty winning pools, duplicate Scheduler replay, authorization, payout/refund behavior, reentrancy resistance, the permissionless rescue boundary, and RPC identity checks that reject chain-ID collisions. See [hardhat/README.md](hardhat/README.md) for the exact local workflow.
+
+
+---
+
+## Reviewer frontend
+
+This fork now includes a full React/Vite frontend in [web/](web/) rather than a screenshot-only mock. It reads the real `RitualPredict` ABI through viem, verifies the Ritual chain identity, lists on-chain markets, shows YES/NO pool composition and resolution state, and exposes create/bet/claim/refund/rescue actions through an injected wallet.
+
+When the Ritual RPC is unavailable, the UI switches to an explicitly labelled **Preview** dataset and disables on-chain writes instead of presenting mock data as chain state. For local proof, `hardhat/scripts/local-demo.ts` writes a gitignored `web/public/local-demo.json` so the browser automatically connects to the deployed local contract.
+
+![Ritual Predict live local dashboard](docs/screenshots/ritual-predict-web-live.png)
+
+The UI design system is persisted at [design-system/ritual-predict/MASTER.md](design-system/ritual-predict/MASTER.md), generated with UI/UX Pro Max and then implemented with visible focus, reduced-motion support, 44px+ controls, responsive breakpoints, explicit transaction feedback, and accessible form errors.
+
+### Full local reviewer flow
+
+```bash
+# terminal 1
+cd hardhat
+pnpm hardhat node --chain-id 1979
+
+# terminal 2
+cd hardhat
+pnpm hardhat run scripts/local-demo.ts
+
+# terminal 3
+cd web
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open the Vite URL. The page should show **Live contract**, one resolved market, a 3 RITUAL visible pool, and a 0.5 RITUAL execution balance.

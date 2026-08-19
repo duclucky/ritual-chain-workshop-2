@@ -81,6 +81,10 @@ Solidity tests: 16 passing
 Node.js identity tests: 4 passing
 Full Hardhat test task: 20 passing
 Local Hardhat node demo: PASS
+Frontend frozen install: PASS
+Frontend lint: 0 warnings / 0 errors
+Frontend production build: PASS
+Browser live-contract QA: PASS
 ```
 
 The test suite runs against local mocks only and does not require a funded wallet or live Ritual RPC.
@@ -115,3 +119,27 @@ The canonical endpoint configured by the starter is `https://rpc.ritualfoundatio
 Because chain ID `1979` is also used by another public EVM testnet, the project now refuses to trust chain ID alone. A candidate RPC with chain ID 1979 was deliberately probed and rejected because the canonical RitualWallet address `0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948` had no bytecode there. `connectRitual()` now verifies chain ID, RitualWallet bytecode, and a `balanceOf` ABI call before any live deployment script proceeds.
 
 No Ritual testnet contract address or transaction hash is claimed in this repository because a real deployment could not be verified through the canonical RPC on this date. The local proof above is intentionally labeled as local Hardhat execution, not production/testnet proof.
+
+
+## Frontend proof
+
+A React 19 + Vite 8 frontend was added under `web/` and connected to the actual `RitualPredict` ABI with viem. UI/UX Pro Max generated the persisted design system in `design-system/ritual-predict/MASTER.md`.
+
+Browser QA was run against a live local Hardhat node (chain ID 1979) after `local-demo.ts` seeded the canonical Ritual mocks and deployed the contract. Observed browser state:
+
+```text
+Live contract
+Verified Ritual-compatible chain and RitualPredict bytecode
+Markets shown: 1 (On-chain)
+Visible pool: 3 RITUAL
+Execution balance: 0.5 RITUAL
+Market #1: Resolved YES
+Observed value: 4100
+```
+
+The browser console contained no runtime errors on the live path. Negative UX checks also verified invalid contract-address feedback, missing injected-wallet feedback, inline create-market form errors, Escape-to-close, and clearly labelled Preview fallback when RPC access fails.
+
+Evidence:
+
+- [Live local dashboard](screenshots/ritual-predict-web-live.png)
+- [Create-market validation](screenshots/create-market-validation.png)
