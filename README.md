@@ -106,3 +106,25 @@ betting model is plain pari-mutuel: two running totals and one mapping per side.
 - Ritual Chain docs — <https://docs.ritualfoundation.org>
 - dApp skills — <https://github.com/ritual-foundation/ritual-dapp-skills>
 - Explorer — <https://explorer.ritualfoundation.org> · Faucet — <https://faucet.ritualfoundation.org>
+
+---
+
+## Fork extension: Liveness & Safety Rescue
+
+This fork focuses on a failure mode that the happy path does not cover: a scheduled market can remain stuck forever if Scheduler never executes any retry, for example when execution funding is missing. In that case the contract's attempt counter never advances, so retry exhaustion alone cannot make the pool refundable.
+
+The added `rescueExpiredMarket()` path is permissionless but time-gated. It only activates after the final booked retry plus the Scheduler TTL has passed. At that point no legitimate scheduled settlement can still land, so the market can be invalidated safely and bettors can pull their original stake back. Early rescue reverts, and finalized markets cannot be overwritten.
+
+The upstream starter also shipped with five unimplemented lifecycle functions and stale test/frontend references. This fork completes market creation, scheduling, TEE executor selection, HTTP + JQ resolution, settlement, and local Ritual mocks.
+
+### Local proof
+
+From `hardhat/`:
+
+```bash
+pnpm build
+pnpm typecheck
+pnpm test
+```
+
+The current suite has **16 passing Solidity tests** covering success, retry failure, malformed async responses, missing executors, empty JQ output, empty winning pools, duplicate Scheduler replay, authorization, payout/refund behavior, reentrancy resistance, and the permissionless rescue boundary. See [hardhat/README.md](hardhat/README.md) for the exact local workflow.
