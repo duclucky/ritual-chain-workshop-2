@@ -107,6 +107,10 @@ contract RitualPredict {
     uint256 public constant MIN_RESOLVE_DELAY_SECONDS = 15;
     uint256 public constant MAX_MARKET_SECONDS = 1 days;
 
+    /// After the final scheduled trigger plus its TTL, no legitimate settlement can still land.
+    /// Anyone may then invalidate a stuck market so bettors are never locked forever.
+    uint256 public constant RESCUE_GRACE_BLOCKS = SCHEDULER_TTL_BLOCKS;
+
     // ────────────────────────────── Storage ──────────────────────────────
 
     /// Assumed block time, used only to turn human durations into block counts.
@@ -185,6 +189,8 @@ contract RitualPredict {
     error BadDuration();
     error EmptyString();
     error TransferFailed();
+    error RescueTooEarly(uint256 rescueBlock);
+    error MarketFinalized();
 
     constructor(uint256 blockTimeMs_) {
         if (blockTimeMs_ == 0) revert BadDuration();
@@ -326,6 +332,21 @@ contract RitualPredict {
         emit MarketInvalidated(marketId, reason);
     }
 
+    /// Permissionless liveness escape hatch. If Scheduler never executes (for example,
+    /// because execution funding was missing), the normal attempt counter never moves.
+    /// Once every booked execution and its settlement TTL are irreversibly in the past,
+    /// anyone may invalidate the market and unlock pull-based refunds.
+    function rescueExpiredMarket(uint256 marketId) external {
+        Market storage m = _market(marketId);
+        if (m.state == MarketState.Resolved || m.state == MarketState.Invalid) revert MarketFinalized();
+
+        uint256 rescueAt = _rescueBlock(m);
+        if (block.number <= rescueAt) revert RescueTooEarly(rescueAt);
+
+        _invalidate(m, marketId, "resolution window expired");
+        _cancelScheduleBestEffort(m.scheduleId);
+    }
+
     // ────────────────────────────── Payouts ──────────────────────────────
 
     /// Pull-based, proportional share of the whole pool. No loops over participants.
@@ -389,6 +410,10 @@ contract RitualPredict {
         for (uint256 i = 0; i < total; i++) {
             all[i] = getMarket(total - i);
         }
+    }
+
+    function resolutionDeadline(uint256 marketId) external view returns (uint256) {
+        return _rescueBlock(_market(marketId));
     }
 
     function stakesOf(
@@ -580,6 +605,13 @@ contract RitualPredict {
         if (comparator == Comparator.GTE) return observed >= target;
         if (comparator == Comparator.LT) return observed < target;
         return observed <= target;
+    }
+
+    function _rescueBlock(Market storage m) private view returns (uint256) {
+        uint256 lastScheduledBlock =
+            uint256(m.resolveBlock) +
+            (uint256(MAX_ATTEMPTS) - 1) * uint256(RETRY_INTERVAL_BLOCKS);
+        return lastScheduledBlock + RESCUE_GRACE_BLOCKS;
     }
 
     function _secondsToBlocks(
