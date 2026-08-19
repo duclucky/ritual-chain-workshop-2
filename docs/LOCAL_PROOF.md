@@ -17,7 +17,7 @@ ERR_PNPM_IGNORED_BUILDS
 Ignored build scripts: esbuild@0.28.2
 ```
 
-The generated `pnpm-workspace.yaml` was removed afterward so the source tree returned to the untouched state. The fork now pins `pnpm@10.15.1` in `package.json`.
+The generated baseline `pnpm-workspace.yaml` was removed afterward so the source tree returned to the untouched state. The fork now pins `pnpm@10.15.1` in `package.json` and intentionally adds `pnpm-workspace.yaml` with `onlyBuiltDependencies: [esbuild]`. A fresh frozen install ran the `esbuild@0.28.2` postinstall successfully and completed with exit code 0.
 
 ### Build before changes
 
@@ -74,10 +74,12 @@ pnpm test
 Verified result during development:
 
 ```text
+Frozen pnpm install: PASS
 Hardhat build: PASS
 TypeScript: PASS
 Solidity tests: 16 passing
-Full Hardhat test task: PASS
+Node.js identity tests: 4 passing
+Full Hardhat test task: 20 passing
 Local Hardhat node demo: PASS
 ```
 
@@ -85,11 +87,12 @@ The test suite runs against local mocks only and does not require a funded walle
 
 ## Explicit local-node run
 
-A standalone Hardhat node was started and `scripts/local-demo.ts` was executed against `localhost`. The script installed the Ritual mock runtimes at their canonical addresses, then exercised the complete user flow.
+A standalone Hardhat node was started with `hardhat node --chain-id 1979` and `scripts/local-demo.ts` was executed against `localhost`. The script installed the Ritual mock runtimes at their canonical addresses, verified the Ritual network identity guard, then exercised the complete user flow.
 
 Observed output:
 
 ```text
+Ritual network identity guard: PASS
 RitualPredict: 0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6
 Market #1: Will ETH clear 4,000?
 Schedule id: 1
@@ -104,3 +107,11 @@ LOCAL DEMO PASS
 ```
 
 The node process was stopped after the successful run. The shown contract address is a disposable local Hardhat address, not a Ritual testnet deployment.
+
+## Ritual testnet RPC availability on 2026-08-19
+
+The canonical endpoint configured by the starter is `https://rpc.ritualfoundation.org`. During this work, independent DNS queries through both Cloudflare (1.1.1.1) and Google (8.8.8.8) resolved that hostname to `162.255.119.231`. A plain HTTP request reached that host but returned a `301` redirect to `https://ritualfoundation.org` with `X-Served-By: Namecheap URL Forward`; HTTPS JSON-RPC connections to port 443 timed out/reset from this machine. `explorer.ritualfoundation.org` resolved to the same forwarding IP and showed the same HTTP redirect behavior.
+
+Because chain ID `1979` is also used by another public EVM testnet, the project now refuses to trust chain ID alone. A candidate RPC with chain ID 1979 was deliberately probed and rejected because the canonical RitualWallet address `0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948` had no bytecode there. `connectRitual()` now verifies chain ID, RitualWallet bytecode, and a `balanceOf` ABI call before any live deployment script proceeds.
+
+No Ritual testnet contract address or transaction hash is claimed in this repository because a real deployment could not be verified through the canonical RPC on this date. The local proof above is intentionally labeled as local Hardhat execution, not production/testnet proof.

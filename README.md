@@ -127,4 +127,4 @@ pnpm typecheck
 pnpm test
 ```
 
-The current suite has **16 passing Solidity tests** covering success, retry failure, malformed async responses, missing executors, empty JQ output, empty winning pools, duplicate Scheduler replay, authorization, payout/refund behavior, reentrancy resistance, and the permissionless rescue boundary. See [hardhat/README.md](hardhat/README.md) for the exact local workflow.
+The current suite has **20 passing tests** (16 Solidity + 4 Node.js) covering success, retry failure, malformed async responses, missing executors, empty JQ output, empty winning pools, duplicate Scheduler replay, authorization, payout/refund behavior, reentrancy resistance, the permissionless rescue boundary, and RPC identity checks that reject chain-ID collisions. See [hardhat/README.md](hardhat/README.md) for the exact local workflow.

@@ -28,7 +28,7 @@ scripts/
 
 ## Local verification
 
-Node.js 20+ is required. The project pins `pnpm@10.15.1` for reproducible installs.
+Node.js 20+ is required. The project pins `pnpm@10.15.1` for reproducible installs. `pnpm-workspace.yaml` explicitly approves only the `esbuild` dependency build script required by the toolchain.
 
 ```bash
 pnpm install --frozen-lockfile
@@ -37,7 +37,7 @@ pnpm typecheck
 pnpm test
 ```
 
-Current local suite: **16 Solidity tests**. It covers:
+Current local suite: **20 tests**: 16 Solidity tests plus 4 Node.js network-identity tests. It covers:
 
 - market creation and immutable resolution rules;
 - block-number betting deadlines;
@@ -53,18 +53,23 @@ Current local suite: **16 Solidity tests**. It covers:
 - RitualWallet execution funding;
 - early-rescue rejection;
 - permissionless rescue when Scheduler never runs;
-- protection against rescue overwriting a resolved market.
+- protection against rescue overwriting a resolved market;
+- RPC identity checks that reject wrong chain IDs, chain-ID collisions, and fake RitualWallet contracts.
 
 The tests use `vm.etch` to install mocks at Ritual's canonical system/precompile addresses, so local validation does not require a funded account or live RPC.
 
 For an explicit local-node walkthrough, run these in two terminals:
 
 ```bash
-pnpm hardhat node
+pnpm hardhat node --chain-id 1979
 pnpm hardhat run scripts/local-demo.ts
 ```
 
-`local-demo.ts` installs mock runtimes at the canonical Ritual addresses, deploys `RitualPredict`, creates a market, places YES/NO bets, resolves through the Scheduler + HTTP + JQ path, claims the winning payout, and exits with `LOCAL DEMO PASS`.
+`local-demo.ts` installs mock runtimes at the canonical Ritual addresses, verifies the Ritual network identity guard, deploys `RitualPredict`, creates a market, places YES/NO bets, resolves through the Scheduler + HTTP + JQ path, claims the winning payout, and exits with `LOCAL DEMO PASS`. The explicit `--chain-id 1979` is required because Hardhat node defaults to 31337.
+
+## Network identity safety
+
+Chain ID `1979` is not globally unique. Before any live script proceeds, `connectRitual()` verifies all three signals: the reported chain ID, bytecode at the canonical RitualWallet address, and a successful `balanceOf` ABI probe. This prevents a reachable non-Ritual RPC that happens to use chain ID 1979 from being mistaken for Ritual.
 
 ## Ritual testnet configuration
 

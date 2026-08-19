@@ -1,5 +1,6 @@
 import { network } from "hardhat";
 import { formatEther, parseEther, stringToHex } from "viem";
+import { assertRitualNetwork } from "./ritual.ts";
 
 const ADDR = {
   scheduler: "0x56e776BAE2DD60664b69Bd5F865F1180ffB7D58B",
@@ -45,6 +46,8 @@ await http.write.setResponse([200, stringToHex('{"price":4100}'), ""]);
 await jq.write.setValue([4100n]);
 
 console.log("Mocks installed at canonical Ritual addresses.");
+await assertRitualNetwork(publicClient);
+console.log("Ritual network identity guard: PASS");
 
 console.log("");
 console.log("── Deploy and create market ───────────────────────────────");

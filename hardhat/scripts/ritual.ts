@@ -3,7 +3,7 @@
  * block-time measurement taken from the live chain.
  */
 import { network } from "hardhat";
-import { formatEther } from "viem";
+import { formatEther, zeroAddress, type PublicClient } from "viem";
 
 /** Canonical Ritual Chain addresses. Mirrors contracts/ritual/RitualChain.sol. */
 export const RITUAL = {
@@ -66,6 +66,35 @@ export const TEE_REGISTRY_ABI = [
   },
 ] as const;
 
+export async function assertRitualNetwork(publicClient: PublicClient): Promise<void> {
+  const chainId = await publicClient.getChainId();
+  if (chainId !== RITUAL.chainId) {
+    throw new Error(`Wrong chain: expected Ritual chain ID ${RITUAL.chainId}, got ${chainId}.`);
+  }
+
+  const ritualWalletCode = await publicClient.getCode({ address: RITUAL.ritualWallet });
+  if (!ritualWalletCode || ritualWalletCode === "0x") {
+    throw new Error(
+      `RPC reports chain ID ${RITUAL.chainId}, but RitualWallet is missing at ${RITUAL.ritualWallet}. ` +
+        "Chain ID 1979 is not unique; refusing to treat this RPC as Ritual.",
+    );
+  }
+
+  try {
+    await publicClient.readContract({
+      address: RITUAL.ritualWallet,
+      abi: RITUAL_WALLET_ABI,
+      functionName: "balanceOf",
+      args: [zeroAddress],
+    });
+  } catch {
+    throw new Error(
+      `RPC has code at RitualWallet ${RITUAL.ritualWallet}, but the RitualWallet ABI probe failed. ` +
+        "Refusing to deploy to an unverified chain.",
+    );
+  }
+}
+
 export async function connectRitual() {
   const connection = await network.create({ network: "ritual", chainType: "l1" });
   const publicClient = await connection.viem.getPublicClient();
@@ -76,6 +105,8 @@ export async function connectRitual() {
       "No account configured. Set DEPLOYER_PRIVATE_KEY in hardhat/.env (see .env.example).",
     );
   }
+
+  await assertRitualNetwork(publicClient);
 
   return { connection, publicClient, wallet, viem: connection.viem };
 }
