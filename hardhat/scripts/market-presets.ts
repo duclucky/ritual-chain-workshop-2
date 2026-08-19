@@ -18,7 +18,7 @@ export const OUTCOME = ["Unresolved", "YES", "NO"] as const;
  */
 export const DEMO_MARKET = {
   question: "Will ETH/USD be at least $4,000 when this market resolves?",
-  oracleUrl: "http://localhost:3000/api/oracle/eth",
+  oracleUrl: "",
   jsonPath: ".price",
   target: 4000,
   comparator: "gte",

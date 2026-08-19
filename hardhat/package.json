@@ -1,7 +1,16 @@
 {
-  "name": "hardhat",
+  "name": "ritual-chain-workshop-2",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "build": "hardhat build",
+    "test": "hardhat test",
+    "test:solidity": "hardhat test solidity",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm build && pnpm typecheck && pnpm test"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ignition": "^3.1.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^5.0.7",

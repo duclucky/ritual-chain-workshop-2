@@ -1,5 +1,15 @@
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
-import { configVariable, defineConfig } from "hardhat/config";
+import { defineConfig } from "hardhat/config";
+
+// Scripts in this workshop also read process.env, so load the local .env once here.
+// Missing .env is fine for local compilation/tests, which use the simulated network.
+try {
+  process.loadEnvFile();
+} catch {
+  // No local .env file.
+}
+
+const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY ?? process.env.RITUAL_PRIVATE_KEY;
 
 export default defineConfig({
   plugins: [hardhatToolboxViemPlugin],
@@ -30,14 +40,12 @@ export default defineConfig({
       type: "edr-simulated",
       chainType: "l1",
     },
-    // Ritual Chain testnet. Requires EIP-1559 (type-2) transactions; viem sends
-    // those by default.
     ritual: {
       type: "http",
       chainType: "l1",
       chainId: 1979,
-      url: "https://rpc.ritualfoundation.org",
-      accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
+      url: process.env.RITUAL_RPC_URL ?? "https://rpc.ritualfoundation.org",
+      accounts: deployerPrivateKey ? [deployerPrivateKey] : [],
     },
   },
 });

@@ -73,7 +73,7 @@ export async function connectRitual() {
 
   if (wallet === undefined) {
     throw new Error(
-      "No account configured. Set RITUAL_PRIVATE_KEY in hardhat/.env (see .env.example).",
+      "No account configured. Set DEPLOYER_PRIVATE_KEY in hardhat/.env (see .env.example).",
     );
   }
 

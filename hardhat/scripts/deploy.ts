@@ -4,7 +4,7 @@
  *   npx hardhat run scripts/deploy.ts
  *
  * Environment (all optional, see .env.example):
- *   RITUAL_PRIVATE_KEY   deployer key (required)
+ *   DEPLOYER_PRIVATE_KEY   deployer key (required)
  *   RITUAL_RPC_URL       defaults to https://rpc.ritualfoundation.org
  *   BLOCK_TIME_MS        override the measured block time
  *   EXECUTION_FUNDING    RITUAL to deposit into RitualWallet (default 0.5)
@@ -88,15 +88,12 @@ console.log(`Execution balance: ${ritual(executionBalance)} (locked until block 
 
 console.log("");
 console.log("── Next steps ────────────────────────────────────────────");
-console.log("1. Expose the demo oracle publicly (the TEE executor cannot reach localhost):");
-console.log("     cd web && pnpm dev");
-console.log("     cloudflared tunnel --url http://localhost:3000");
-console.log("2. Put these in web/.env.local:");
-console.log(`     NEXT_PUBLIC_PREDICT_ADDRESS=${predict.address}`);
-console.log("     NEXT_PUBLIC_DEMO_ORACLE_URL=https://<your-tunnel>/api/oracle/eth");
-console.log("3. Create the demo market from the UI, or:");
+console.log("1. Choose a public JSON oracle endpoint reachable by Ritual TEE executors.");
+console.log("2. Create a market from the CLI:");
 console.log(`     PREDICT_ADDRESS=${predict.address} \\`);
-console.log("     ORACLE_URL=https://<your-tunnel>/api/oracle/eth \\");
+console.log("     ORACLE_URL=https://your-oracle.example/price \\");
 console.log("     npx hardhat run scripts/create-demo-market.ts");
+console.log("3. Inspect market and Scheduler state:");
+console.log(`     PREDICT_ADDRESS=${predict.address} npx hardhat run scripts/status.ts`);
 
 await connection.close();

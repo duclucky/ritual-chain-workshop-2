@@ -1,41 +1,79 @@
-# Ritual Predict — contracts
+# Ritual Predict contracts
 
-The `RitualPredict` market contract, its tests, and the deployment scripts.
-Full architecture and the workshop runbook live in [../README.md](../README.md).
+`RitualPredict` is a binary pari-mutuel prediction market that schedules its own resolution on Ritual Chain. At resolution time it selects an HTTP-capable TEE executor, calls the HTTP precompile, extracts a `uint256` with the JQ precompile, and either settles the winning side or invalidates the market for refunds.
+
+## What this fork fixes
+
+The upstream starter contained five unimplemented lifecycle functions and stale Hardhat template tests. This fork completes the lifecycle and adds a local Ritual harness so the documented flow can be exercised without a live testnet.
+
+The custom extension is a permissionless liveness rescue. If Scheduler never executes any booked retry, a market would otherwise keep funds locked forever because the attempt counter never advances. `rescueExpiredMarket()` becomes available only after the last scheduled retry plus its Scheduler TTL has passed. It then invalidates the market and unlocks pull-based refunds. It cannot run early or overwrite an already finalized outcome.
 
 ## Layout
 
-```
+```text
 contracts/
-  RitualPredict.sol          the market: creation, betting, autonomous resolution, payouts
-  RitualPredict.t.sol        Solidity unit tests
-  ritual/RitualChain.sol     canonical Ritual addresses + system contract interfaces
-  mocks/RitualMocks.sol      test-only stand-ins for the precompiles and system contracts
-test/
-  RitualPredict.e2e.ts       end-to-end walkthroughs of the workshop flow
+  RitualPredict.sol              market lifecycle, autonomous resolution, payouts, rescue path
+  RitualPredict.t.sol            Solidity unit and adversarial tests
+  ritual/RitualChain.sol         canonical Ritual addresses and interfaces
+  mocks/RitualMocks.sol          local Scheduler, wallet, TEE, HTTP, and JQ stand-ins
 scripts/
-  block-time.ts              measure the chain's current block time
-  deploy.ts                  deploy + prepay execution fees
-  fund.ts                    top up the prepaid execution balance
-  status.ts                  live state of every market
-  create-demo-market.ts      create the preset market from the CLI
-  export-abi.ts              copy the compiled ABI into the frontend
+  block-time.ts                  measure current Ritual block time
+  deploy.ts                      deploy and prepay execution fees
+  fund.ts                        top up prepaid execution balance
+  status.ts                      print live market and Scheduler state
+  create-demo-market.ts          create a market against a public JSON oracle
+  market-presets.ts              CLI market defaults
 ```
 
-## Commands
+## Local verification
+
+Node.js 20+ is required. The project pins `pnpm@10.15.1` for reproducible installs.
 
 ```bash
-cp .env.example .env                            # RITUAL_PRIVATE_KEY, funded from the faucet
-
-npx hardhat test                                # 33 Solidity + 2 TypeScript tests
-npx hardhat test solidity                       # Solidity only
-npx hardhat build                               # compile
-
-npx hardhat run scripts/block-time.ts           # measure block time
-npx hardhat run scripts/deploy.ts               # deploy to Ritual Chain
-PREDICT_ADDRESS=0x... npx hardhat run scripts/status.ts
-PREDICT_ADDRESS=0x... npx hardhat run scripts/fund.ts
+pnpm install --frozen-lockfile
+pnpm build
+pnpm typecheck
+pnpm test
 ```
 
-Tests run entirely against mocks — `vm.etch` puts the mock runtime code at the canonical Ritual
-addresses — so no network access or funded account is needed.
+Current local suite: **16 Solidity tests**. It covers:
+
+- market creation and immutable resolution rules;
+- block-number betting deadlines;
+- Scheduler-only resolution authorization;
+- TEE executor selection failure;
+- HTTP error, revert, and malformed async-envelope handling;
+- empty JQ output handling;
+- retry exhaustion and refunds;
+- successful YES resolution and payout;
+- empty winning-side invalidation;
+- duplicate Scheduler replay idempotency;
+- pull-payment reentrancy resistance;
+- RitualWallet execution funding;
+- early-rescue rejection;
+- permissionless rescue when Scheduler never runs;
+- protection against rescue overwriting a resolved market.
+
+The tests use `vm.etch` to install mocks at Ritual's canonical system/precompile addresses, so local validation does not require a funded account or live RPC.
+
+## Ritual testnet configuration
+
+Copy the tracked example file and provide a funded testnet key locally. Never commit the resulting `.env` file.
+
+```bash
+cp .env.example .env
+```
+
+The canonical key variable is `DEPLOYER_PRIVATE_KEY`; `RITUAL_PRIVATE_KEY` remains accepted as a backwards-compatible fallback in `hardhat.config.ts`.
+
+Useful commands:
+
+```bash
+pnpm hardhat run scripts/block-time.ts
+pnpm hardhat run scripts/deploy.ts
+PREDICT_ADDRESS=0x... ORACLE_URL=https://public.example/price pnpm hardhat run scripts/create-demo-market.ts
+PREDICT_ADDRESS=0x... pnpm hardhat run scripts/status.ts
+PREDICT_ADDRESS=0x... pnpm hardhat run scripts/fund.ts
+```
+
+`ORACLE_URL` must be an HTTP(S) endpoint reachable from the public internet. `localhost` is intentionally rejected because the TEE executor cannot reach the developer machine.
