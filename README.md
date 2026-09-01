@@ -1,5 +1,7 @@
 # Ritual Predict
 
+> **Live Web Application**: [https://ritual-predict-core.vercel.app](https://ritual-predict-core.vercel.app)
+
 A self-resolving binary prediction market on [Ritual Chain](https://docs.ritualfoundation.org).
 
 Create a market like _"Will ETH/USD be at least $4,000 when this market resolves?"_, stake native
@@ -47,7 +49,7 @@ closes at a _block_. That way "betting is closed" and "the Scheduler woke us" ca
 whatever the chain's block time does. `createMarket` takes human durations in seconds and converts
 them using the `blockTimeMs` fixed at deployment. Nothing on-chain reads `block.timestamp`.
 
-**On Ritual Chain, `block.timestamp` is Unix milliseconds** (≈`1.786e12`), not seconds — verified
+**On Ritual Chain, `block.timestamp` is Unix milliseconds** (≈`1.786e12`), not seconds, verified
 against the live chain, not assumed. That is a good reason to avoid it entirely, which this contract
 does. Measured block time was ≈195 ms when this was written; run
 `npx hardhat run scripts/block-time.ts` to check it for yourself.
@@ -71,7 +73,7 @@ executor cannot sink a market. The callback is idempotent, so a leftover executi
 `stake × totalPool ÷ winningPool` for the caller only. Integer division leaves sub-wei dust in the
 contract; that is deliberate and negligible.
 
-**Empty winning side → refundable.** Pari-mutuel has no denominator when nobody backed the winning
+**Empty winning side -> refundable.** Pari-mutuel has no denominator when nobody backed the winning
 answer, so the market records the outcome and observed value, then becomes `Invalid` so everyone
 takes their stake back.
 
@@ -103,9 +105,9 @@ betting model is plain pari-mutuel: two running totals and one mapping per side.
 
 ## Reference
 
-- Ritual Chain docs — <https://docs.ritualfoundation.org>
-- dApp skills — <https://github.com/ritual-foundation/ritual-dapp-skills>
-- Explorer — <https://explorer.ritualfoundation.org> · Faucet — <https://faucet.ritualfoundation.org>
+- Ritual Chain docs: <https://docs.ritualfoundation.org>
+- dApp skills: <https://github.com/ritual-foundation/ritual-dapp-skills>
+- Explorer: <https://explorer.ritualfoundation.org> · Faucet: <https://faucet.ritualfoundation.org>
 
 ---
 
@@ -129,18 +131,16 @@ pnpm test
 
 The current suite has **20 passing tests** (16 Solidity + 4 Node.js) covering success, retry failure, malformed async responses, missing executors, empty JQ output, empty winning pools, duplicate Scheduler replay, authorization, payout/refund behavior, reentrancy resistance, the permissionless rescue boundary, and RPC identity checks that reject chain-ID collisions. See [hardhat/README.md](hardhat/README.md) for the exact local workflow.
 
-
 ---
 
 ## Reviewer frontend
 
-This fork now includes a full React/Vite frontend in [web/](web/) rather than a screenshot-only mock. It reads the real `RitualPredict` ABI through viem, verifies the Ritual chain identity, lists on-chain markets, shows YES/NO pool composition and resolution state, and exposes create/bet/claim/refund/rescue actions through an injected wallet.
+- **Live Vercel Deployment**: [https://ritual-predict-core.vercel.app](https://ritual-predict-core.vercel.app)
+- **GitHub Repository**: [https://github.com/duclucky/ritual-chain-workshop-2](https://github.com/duclucky/ritual-chain-workshop-2)
+
+This fork includes a full React/Vite frontend in [web/](web/) styled with the clean, modern Precog Markets Core design language. It reads the real `RitualPredict` ABI through viem, verifies the Ritual chain identity, lists on-chain markets, shows YES/NO pool composition and resolution state, supports all EVM wallets with auto-chain switching, and exposes create/bet/claim/refund/rescue actions.
 
 When the Ritual RPC is unavailable, the UI switches to an explicitly labelled **Preview** dataset and disables on-chain writes instead of presenting mock data as chain state. For local proof, `hardhat/scripts/local-demo.ts` writes a gitignored `web/public/local-demo.json` so the browser automatically connects to the deployed local contract.
-
-![Ritual Predict live local dashboard](docs/screenshots/ritual-predict-web-live.png)
-
-The UI design system is persisted at [design-system/ritual-predict/MASTER.md](design-system/ritual-predict/MASTER.md), generated with UI/UX Pro Max and then implemented with visible focus, reduced-motion support, 44px+ controls, responsive breakpoints, explicit transaction feedback, and accessible form errors.
 
 ### Full local reviewer flow
 
