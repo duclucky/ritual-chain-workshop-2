@@ -49,6 +49,7 @@ import {
 import { ritualPredictAbi } from "./lib/ritualPredictAbi";
 
 const RITUAL_CHAIN_ID = 1979;
+const RITUAL_CHAIN_ID_HEX = "0x7bb";
 const RITUAL_WALLET = "0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948" as Address;
 const RITUAL_WALLET_ABI = [
   {
@@ -104,7 +105,16 @@ type LocalDemoConfig = { address?: Address; rpcUrl?: string; chainId?: number };
 
 declare global {
   interface Window {
-    ethereum?: EIP1193Provider;
+    ethereum?: EIP1193Provider & {
+      providers?: EIP1193Provider[];
+      isMetaMask?: boolean;
+      isRabby?: boolean;
+      isCoinbaseWallet?: boolean;
+      isOKExWallet?: boolean;
+    };
+    okxwallet?: EIP1193Provider;
+    coinbaseWalletExtension?: EIP1193Provider;
+    phantom?: { ethereum?: EIP1193Provider };
   }
 }
 
@@ -201,6 +211,20 @@ function getMarketCategory(question: string): string {
     return "Tech & AI";
   }
   return "Ritual Core";
+}
+
+function getActiveEthereumProvider(): EIP1193Provider | null {
+  if (typeof window === "undefined") return null;
+  if (window.ethereum) {
+    if (Array.isArray(window.ethereum.providers) && window.ethereum.providers.length > 0) {
+      return window.ethereum.providers[0];
+    }
+    return window.ethereum;
+  }
+  if (window.okxwallet) return window.okxwallet;
+  if (window.coinbaseWalletExtension) return window.coinbaseWalletExtension;
+  if (window.phantom?.ethereum) return window.phantom.ethereum;
+  return null;
 }
 
 function App() {
@@ -337,20 +361,96 @@ function App() {
     };
   }, [refresh]);
 
+  // EIP-1193 & EIP-6963 Auto-detection and accounts sync
+  useEffect(() => {
+    const provider = getActiveEthereumProvider();
+    if (!provider) return;
+
+    // Check existing authorization
+    provider
+      .request({ method: "eth_accounts" })
+      .then((accounts: any) => {
+        if (Array.isArray(accounts) && accounts.length > 0 && isAddress(accounts[0])) {
+          setAccount(accounts[0] as Address);
+        }
+      })
+      .catch(() => undefined);
+
+    const handleAccountsChanged = (accounts: unknown) => {
+      if (Array.isArray(accounts) && accounts.length > 0 && isAddress(accounts[0])) {
+        setAccount(accounts[0] as Address);
+        setNotice({ tone: "success", text: `Active wallet account: ${shortAddress(accounts[0])}` });
+      } else {
+        setAccount(null);
+      }
+    };
+
+    const handleChainChanged = () => {
+      void refresh();
+    };
+
+    if (typeof (provider as any).on === "function") {
+      (provider as any).on("accountsChanged", handleAccountsChanged);
+      (provider as any).on("chainChanged", handleChainChanged);
+    }
+
+    return () => {
+      if (typeof (provider as any).removeListener === "function") {
+        (provider as any).removeListener("accountsChanged", handleAccountsChanged);
+        (provider as any).removeListener("chainChanged", handleChainChanged);
+      }
+    };
+  }, [refresh]);
+
   async function connectWallet() {
-    if (!window.ethereum) {
-      setNotice({ tone: "error", text: "No injected Web3 wallet found. Please install MetaMask or Rabby." });
+    const provider = getActiveEthereumProvider();
+    if (!provider) {
+      setNotice({
+        tone: "error",
+        text: "No EVM wallet detected in your browser. Please install an EVM wallet extension (e.g. MetaMask, Rabby, OKX, Coinbase) or open this page in your Web3 wallet browser.",
+      });
       return;
     }
+
     try {
-      const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as Address[];
-      const chainIdHex = (await window.ethereum.request({ method: "eth_chainId" })) as string;
+      setNotice({ tone: "pending", text: "Connecting to EVM wallet..." });
+      const accounts = (await provider.request({ method: "eth_requestAccounts" })) as Address[];
+      if (!accounts || accounts.length === 0) throw new Error("No accounts authorized by wallet.");
+
+      // Check Chain ID
+      const chainIdHex = (await provider.request({ method: "eth_chainId" })) as string;
       const chainId = Number.parseInt(chainIdHex, 16);
+
       if (chainId !== RITUAL_CHAIN_ID) {
-        throw new Error(`Wallet is on chain ID ${chainId}. Please switch to Ritual Chain (ID ${RITUAL_CHAIN_ID}).`);
+        // Attempt to auto-switch or add Ritual Chain to user wallet
+        try {
+          await provider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: RITUAL_CHAIN_ID_HEX }],
+          });
+        } catch (switchError: any) {
+          // 4902 code means chain is not added yet
+          if (switchError?.code === 4902 || switchError?.data?.originalError?.code === 4902 || /unrecognized|unknown/i.test(switchError?.message ?? "")) {
+            await provider.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: RITUAL_CHAIN_ID_HEX,
+                  chainName: "Ritual Chain",
+                  nativeCurrency: { name: "RITUAL", symbol: "RITUAL", decimals: 18 },
+                  rpcUrls: [rpcUrl, DEFAULT_RPC],
+                },
+              ],
+            });
+          } else {
+            throw new Error(`Please switch your wallet network to Ritual Chain (ID ${RITUAL_CHAIN_ID}).`);
+          }
+        }
       }
-      setAccount(accounts[0] ?? null);
+
+      setAccount(accounts[0]);
       setNotice({ tone: "success", text: `Wallet connected: ${shortAddress(accounts[0])}` });
+      await refresh();
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : "Wallet connection failed." });
     }
@@ -360,13 +460,14 @@ function App() {
     label: string,
     request: { functionName: string; args?: readonly unknown[]; value?: bigint },
   ) {
-    if (!window.ethereum || !account || !contractAddress || !live) {
+    const provider = getActiveEthereumProvider();
+    if (!provider || !account || !contractAddress || !live) {
       setNotice({ tone: "error", text: "Please connect your wallet and verify the live contract first." });
       return;
     }
     setNotice({ tone: "pending", text: `${label}: Waiting for wallet confirmation...` });
     try {
-      const walletClient = createWalletClient({ account, chain: ritualChain, transport: custom(window.ethereum) });
+      const walletClient = createWalletClient({ account, chain: ritualChain, transport: custom(provider) });
       const hash = await walletClient.writeContract({
         address: contractAddress,
         abi: ritualPredictAbi,
@@ -434,7 +535,7 @@ function App() {
     <div className="precog-app">
       <a className="skip-link" href="#markets">Skip to markets</a>
 
-      {/* Precog Top Navigation Bar */}
+      {/* Top Navigation Bar */}
       <header className="precog-navbar">
         <div className="precog-nav-inner">
           {/* Logo Brand */}
@@ -443,8 +544,8 @@ function App() {
               <Zap size={20} className="glyph-icon" />
             </div>
             <div className="precog-brand-titles">
-              <span className="precog-title">Precog</span>
-              <span className="precog-tag">Ritual Core</span>
+              <span className="precog-title">Ritual Predict</span>
+              <span className="precog-tag">Autonomous Core</span>
             </div>
           </a>
 
@@ -567,7 +668,7 @@ function App() {
 
       {/* Main Content Area */}
       <main className="precog-main-layout">
-        {/* Signature Precog Gradient Hero Banner */}
+        {/* Signature Gradient Hero Banner */}
         <section className="precog-hero-banner" id="top">
           <div className="banner-glass-inner">
             <div className="banner-content-row">
@@ -914,7 +1015,7 @@ function App() {
           )}
         </section>
 
-        {/* How Precog Self-Resolving Prediction Works */}
+        {/* How Self-Resolving Prediction Works */}
         <section className="precog-architecture-section" id="resolution-engine">
           <div className="section-title-wrap">
             <span className="section-kicker">AUTONOMOUS ORCHESTRATION</span>
@@ -992,7 +1093,7 @@ function App() {
           <div className="footer-left">
             <div className="footer-brand">
               <Zap size={18} className="text-emerald" />
-              <strong>Precog | Ritual Predict</strong>
+              <strong>Ritual Predict</strong>
             </div>
             <span className="footer-copyright">Built for Ritual Chain Workshop 2 · Proof of Building</span>
           </div>
@@ -1092,7 +1193,7 @@ function CreateMarketDialog({
       <section className="precog-modal-card" role="dialog" aria-modal="true" aria-labelledby="create-title">
         <div className="modal-header-strip">
           <div className="modal-title-group">
-            <span className="modal-kicker">PRECOG LAUNCHPAD</span>
+            <span className="modal-kicker">RITUAL LAUNCHPAD</span>
             <h2 id="create-title">Create Prediction Market</h2>
           </div>
           <button className="modal-close" onClick={onClose} aria-label="Close dialog">
