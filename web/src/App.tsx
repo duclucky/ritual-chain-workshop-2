@@ -1,14 +1,19 @@
 import { cloneElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
+  Check,
   CheckCircle2,
+  ChevronRight,
   CircleDollarSign,
   Clock3,
   Code2,
+  Copy,
   ExternalLink,
+  Flame,
   Gauge,
+  HelpCircle,
+  Info,
   Layers3,
   LoaderCircle,
   LockKeyhole,
@@ -16,11 +21,15 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  Search,
+  Settings2,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Target,
+  Terminal,
+  TrendingUp,
   Wallet,
-  WifiOff,
   Zap,
 } from "lucide-react";
 import {
@@ -39,7 +48,15 @@ import { ritualPredictAbi } from "./lib/ritualPredictAbi";
 
 const RITUAL_CHAIN_ID = 1979;
 const RITUAL_WALLET = "0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948" as Address;
-const RITUAL_WALLET_ABI = [{ type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] }] as const;
+const RITUAL_WALLET_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+] as const;
 const DEFAULT_RPC = import.meta.env.VITE_RPC_URL ?? "https://rpc.ritualfoundation.org";
 const DEFAULT_ADDRESS = import.meta.env.VITE_PREDICT_ADDRESS ?? "";
 
@@ -133,7 +150,7 @@ const previewMarkets: MarketView[] = [
 
 function shortAddress(value?: string) {
   if (!value) return "Not set";
-  return `${value.slice(0, 6)}…${value.slice(-4)}`;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
 function formatRitual(value: bigint) {
@@ -145,7 +162,8 @@ function stateTone(state: number) {
   if (state === 3) return "success";
   if (state === 4) return "danger";
   if (state === 2) return "warning";
-  return "neutral";
+  if (state === 1) return "muted";
+  return "active";
 }
 
 function App() {
@@ -158,12 +176,16 @@ function App() {
   const [blockNumber, setBlockNumber] = useState<bigint | null>(null);
   const [executionBalance, setExecutionBalance] = useState<bigint>(0n);
   const [live, setLive] = useState(false);
-  const [networkReason, setNetworkReason] = useState("Checking Ritual RPC…");
+  const [networkReason, setNetworkReason] = useState("Checking Ritual RPC...");
   const [account, setAccount] = useState<Address | null>(null);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const [betAmounts, setBetAmounts] = useState<Record<string, string>>({});
   const [showCreate, setShowCreate] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+  const [filterState, setFilterState] = useState<"all" | "open" | "resolving" | "resolved" | "invalid">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
 
   const publicClient = useMemo(
     () => createPublicClient({ chain: ritualChain, transport: http(rpcUrl, { timeout: 8_000 }) }),
@@ -194,7 +216,12 @@ function App() {
       if (!ritualWalletCode || ritualWalletCode === "0x") {
         throw new Error("Chain ID matches, but the canonical RitualWallet is missing.");
       }
-      await publicClient.readContract({ address: RITUAL_WALLET, abi: RITUAL_WALLET_ABI, functionName: "balanceOf", args: [RITUAL_WALLET] });
+      await publicClient.readContract({
+        address: RITUAL_WALLET,
+        abi: RITUAL_WALLET_ABI,
+        functionName: "balanceOf",
+        args: [RITUAL_WALLET],
+      });
 
       if (!contractAddress) {
         setLive(false);
@@ -230,7 +257,15 @@ function App() {
             functionName: "resolutionDeadline",
             args: [m.id],
           })) as bigint;
-          return { ...m, attempts: Number(m.attempts), state: Number(m.state), outcome: Number(m.outcome), comparator: Number(m.comparator), stake, rescueBlock };
+          return {
+            ...m,
+            attempts: Number(m.attempts),
+            state: Number(m.state),
+            outcome: Number(m.outcome),
+            comparator: Number(m.comparator),
+            stake,
+            rescueBlock,
+          };
         }),
       );
 
@@ -238,13 +273,13 @@ function App() {
       setBlockNumber(latestBlock);
       setExecutionBalance(fees as bigint);
       setLive(true);
-      setNetworkReason(`Verified Ritual-compatible chain and RitualPredict bytecode at ${shortAddress(contractAddress)}.`);
+      setNetworkReason(`Verified Ritual chain & contract at ${shortAddress(contractAddress)}`);
     } catch (error) {
       setLive(false);
       setMarkets([]);
       const raw = error instanceof Error ? error.message : "RPC unavailable.";
       const friendly = /failed to fetch|http request failed|timeout|network/i.test(raw)
-        ? `RPC unavailable at ${rpcUrl}. Check the URL or use the local Hardhat flow.`
+        ? `RPC unavailable at ${rpcUrl}. Connect local Hardhat node or check network.`
         : raw.split("\n")[0];
       setNetworkReason(friendly);
     } finally {
@@ -255,19 +290,24 @@ function App() {
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
     const timer = window.setInterval(() => void refresh(), 8_000);
-    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(timer);
+    };
   }, [refresh]);
 
   async function connectWallet() {
     if (!window.ethereum) {
-      setNotice({ tone: "error", text: "No injected wallet found. Install a wallet that supports EIP-1193." });
+      setNotice({ tone: "error", text: "No injected wallet found. Please install a Web3 wallet (e.g. MetaMask)." });
       return;
     }
     try {
       const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as Address[];
       const chainIdHex = (await window.ethereum.request({ method: "eth_chainId" })) as string;
       const chainId = Number.parseInt(chainIdHex, 16);
-      if (chainId !== RITUAL_CHAIN_ID) throw new Error(`Wallet is on chain ${chainId}. Switch it to Ritual chain ID ${RITUAL_CHAIN_ID}.`);
+      if (chainId !== RITUAL_CHAIN_ID) {
+        throw new Error(`Wallet is on chain ID ${chainId}. Please switch to Ritual Chain (ID ${RITUAL_CHAIN_ID}).`);
+      }
       setAccount(accounts[0] ?? null);
       setNotice({ tone: "success", text: `Wallet connected: ${shortAddress(accounts[0])}` });
     } catch (error) {
@@ -275,12 +315,15 @@ function App() {
     }
   }
 
-  async function runTransaction(label: string, request: { functionName: string; args?: readonly unknown[]; value?: bigint }) {
+  async function runTransaction(
+    label: string,
+    request: { functionName: string; args?: readonly unknown[]; value?: bigint },
+  ) {
     if (!window.ethereum || !account || !contractAddress || !live) {
-      setNotice({ tone: "error", text: "Connect a wallet and verify a live RitualPredict contract first." });
+      setNotice({ tone: "error", text: "Please connect your wallet and verify the live contract first." });
       return;
     }
-    setNotice({ tone: "pending", text: `${label}: waiting for wallet confirmation…` });
+    setNotice({ tone: "pending", text: `${label}: Waiting for wallet approval...` });
     try {
       const walletClient = createWalletClient({ account, chain: ritualChain, transport: custom(window.ethereum) });
       const hash = await walletClient.writeContract({
@@ -290,9 +333,9 @@ function App() {
         args: request.args as any,
         value: request.value,
       } as any);
-      setNotice({ tone: "pending", text: `${label}: transaction submitted ${shortAddress(hash)}. Waiting for confirmation…` });
+      setNotice({ tone: "pending", text: `${label} broadcasted (${shortAddress(hash)}). Awaiting confirmation...` });
       await publicClient.waitForTransactionReceipt({ hash });
-      setNotice({ tone: "success", text: `${label}: confirmed on-chain.` });
+      setNotice({ tone: "success", text: `${label}: Confirmed on-chain successfully!` });
       await refresh();
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : `${label} failed.` });
@@ -305,181 +348,722 @@ function App() {
       return;
     }
     setContractAddress(contractInput ? (contractInput as Address) : null);
-    setNotice({ tone: "pending", text: "Connection settings updated. Verifying RPC and contract…" });
+    setNotice({ tone: "pending", text: "Connection settings updated. Verifying RPC and contract..." });
+  }
+
+  function copyText(text: string, label: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedLabel(label);
+    setTimeout(() => setCopiedLabel(null), 2000);
   }
 
   const displayedMarkets = live && markets.length ? markets : previewMarkets;
   const totalPool = displayedMarkets.reduce((sum, market) => sum + market.totalYes + market.totalNo, 0n);
   const activeMarkets = displayedMarkets.filter((m) => m.state === 0 || m.state === 1 || m.state === 2).length;
 
-  return (
-    <main className="app-shell">
-      <a className="skip-link" href="#markets">Skip to markets</a>
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Ritual Predict home">
-          <span className="brand-mark"><Zap size={18} aria-hidden="true" /></span>
-          <span><strong>Ritual Predict</strong><small>Self-resolving markets</small></span>
-        </a>
-        <div className="topbar-actions">
-          <div className={`network-pill ${live ? "is-live" : "is-offline"}`}>
-            {live ? <Activity size={15} /> : <WifiOff size={15} />}
-            <span>{live ? "Live contract" : "Preview"}</span>
-          </div>
-          <button className="button secondary" onClick={connectWallet}>
-            <Wallet size={17} /> {account ? shortAddress(account) : "Connect wallet"}
-          </button>
-        </div>
-      </header>
+  const filteredMarkets = useMemo(() => {
+    return displayedMarkets.filter((m) => {
+      const matchesSearch =
+        searchQuery.trim() === "" ||
+        m.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.id.toString() === searchQuery.trim();
 
-      <section className="hero" id="top">
-        <div className="eyebrow"><Sparkles size={15} /> Autonomous resolution, no keeper</div>
-        <div className="hero-grid">
-          <div>
-            <h1>Markets that wake up,<br />read the world, and settle themselves.</h1>
-            <p className="hero-copy">Ritual Scheduler triggers resolution. A TEE executor performs the HTTP request. JQ extracts the value. The contract settles YES or NO, retries safely, and unlocks refunds if liveness fails.</p>
-            <div className="hero-actions">
-              <button className="button primary" onClick={() => setShowCreate(true)} disabled={!live}><Plus size={17} /> Create market</button>
-              <a className="button ghost" href="#resolution-engine">Inspect resolution engine <ArrowRight size={16} /></a>
+      if (!matchesSearch) return false;
+      if (filterState === "all") return true;
+      if (filterState === "open") return m.state === 0;
+      if (filterState === "resolving") return m.state === 1 || m.state === 2;
+      if (filterState === "resolved") return m.state === 3;
+      if (filterState === "invalid") return m.state === 4;
+      return true;
+    });
+  }, [displayedMarkets, filterState, searchQuery]);
+
+  return (
+    <div className="app-layout">
+      <a className="skip-link" href="#markets">Skip to markets</a>
+
+      {/* Floating Background Effects */}
+      <div className="ambient-glow glow-top-left" />
+      <div className="ambient-glow glow-bottom-right" />
+      <div className="mesh-grid-pattern" />
+
+      {/* Header */}
+      <header className="topbar">
+        <div className="topbar-inner">
+          <a className="brand" href="#top" aria-label="Ritual Predict Home">
+            <div className="brand-badge">
+              <Zap size={20} className="brand-icon" />
+              <div className="brand-pulse" />
+            </div>
+            <div className="brand-text">
+              <span className="brand-title">Ritual Predict</span>
+              <span className="brand-subtitle">Autonomous Prediction Markets</span>
+            </div>
+          </a>
+
+          <div className="topbar-right">
+            <button
+              className="hud-toggle-btn"
+              onClick={() => setShowConfig(!showConfig)}
+              title="Connection Console"
+            >
+              <Settings2 size={16} />
+              <span className="hud-label">Console</span>
+            </button>
+
+            <div className={`status-pill ${live ? "status-live" : "status-preview"}`}>
+              <span className="status-dot" />
+              <span>{live ? "Live Chain (1979)" : "Preview Mode"}</span>
+            </div>
+
+            <button className="button wallet-button" onClick={connectWallet}>
+              <Wallet size={16} />
+              <span>{account ? shortAddress(account) : "Connect Wallet"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Expandable Connection HUD Drawer */}
+        {showConfig && (
+          <div className="connection-drawer">
+            <div className="connection-drawer-inner">
+              <div className="drawer-header">
+                <div className="drawer-title">
+                  <Terminal size={16} />
+                  <span>Ritual Protocol Node Configuration</span>
+                </div>
+                <button className="drawer-close" onClick={() => setShowConfig(false)}>x</button>
+              </div>
+
+              <div className="drawer-status-line">
+                <Network size={15} />
+                <span>{networkReason}</span>
+              </div>
+
+              <div className="drawer-grid">
+                <div className="drawer-field">
+                  <label htmlFor="rpc-input">RPC Endpoint</label>
+                  <input
+                    id="rpc-input"
+                    value={rpcUrl}
+                    onChange={(e) => setRpcUrl(e.target.value)}
+                    spellCheck={false}
+                  />
+                </div>
+                <div className="drawer-field">
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label htmlFor="contract-input">RitualPredict Contract</label>
+                    {contractAddress && (
+                      <button
+                        type="button"
+                        onClick={() => copyText(contractAddress, "contract")}
+                        style={{ fontSize: "11px", color: "var(--accent-emerald)", display: "flex", alignItems: "center", gap: "4px" }}
+                      >
+                        {copiedLabel === "contract" ? <Check size={12} /> : <Copy size={12} />}
+                        <span>{copiedLabel === "contract" ? "Copied" : "Copy"}</span>
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="contract-input"
+                    value={contractInput}
+                    onChange={(e) => setContractInput(e.target.value)}
+                    placeholder="0x..."
+                    spellCheck={false}
+                  />
+                </div>
+                <div className="drawer-actions">
+                  <button className="button primary-action-btn" onClick={applyConnection}>
+                    Apply Settings
+                  </button>
+                  <button
+                    className="icon-refresh-btn"
+                    onClick={() => void refresh()}
+                    aria-label="Refresh telemetry"
+                  >
+                    <RefreshCw size={16} className={loading ? "spin" : ""} />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="hero-proof-card">
-            <div className="proof-row"><ShieldCheck size={18} /><span><strong>Permissionless rescue</strong><small>Funds cannot remain locked after the final Scheduler window.</small></span></div>
-            <div className="proof-row"><RotateCcw size={18} /><span><strong>3 scheduled attempts</strong><small>Oracle failure never silently becomes a NO outcome.</small></span></div>
-            <div className="proof-row"><LockKeyhole size={18} /><span><strong>Immutable rule</strong><small>Oracle URL, JSON path, target and comparator are fixed at creation.</small></span></div>
+        )}
+      </header>
+
+      {/* Main Container */}
+      <main className="app-container">
+        {/* Hero Section */}
+        <section className="hero-section" id="top">
+          <div className="hero-badge-pill">
+            <Sparkles size={14} />
+            <span>Zero Off-Chain Keepers - Native TEE Automation</span>
           </div>
-        </div>
-      </section>
 
-      <section className="runtime-card" aria-label="Runtime connection">
-        <div className="runtime-status">
-          <Network size={18} />
-          <div><strong>Runtime connection</strong><p>{networkReason}</p></div>
-        </div>
-        <div className="connection-fields">
-          <label>RPC URL<input value={rpcUrl} onChange={(e) => setRpcUrl(e.target.value)} spellCheck={false} /></label>
-          <label>RitualPredict address<input value={contractInput} onChange={(e) => setContractInput(e.target.value)} placeholder="0x…" spellCheck={false} /></label>
-          <button className="button secondary apply-button" onClick={applyConnection}>Apply</button>
-          <button className="icon-button" onClick={() => void refresh()} aria-label="Refresh chain data" title="Refresh chain data"><RefreshCw size={17} className={loading ? "spin" : ""} /></button>
-        </div>
-      </section>
+          <div className="hero-main-row">
+            <div className="hero-text-block">
+              <h1 className="hero-title">
+                Markets that wake up, <br />
+                <span className="text-gradient">resolve via TEE</span>, and settle themselves.
+              </h1>
+              <p className="hero-description">
+                Built natively on Ritual Chain. The Ritual Scheduler activates the contract at predetermined blocks.
+                TEE executors fetch oracle data via HTTP precompiles, parse numbers with JQ, and resolve pari-mutuel payouts autonomously.
+              </p>
 
+              <div className="hero-cta-group">
+                <button
+                  className="button hero-primary-btn"
+                  onClick={() => setShowCreate(true)}
+                  disabled={!live}
+                >
+                  <Plus size={18} />
+                  <span>Create Market</span>
+                </button>
+                <a className="button hero-secondary-btn" href="#markets">
+                  <span>Explore Markets</span>
+                  <ArrowRight size={16} />
+                </a>
+                <a className="hero-ghost-link" href="#resolution-engine">
+                  <span>How Resolution Works</span>
+                  <ChevronRight size={14} />
+                </a>
+              </div>
+            </div>
+
+            {/* Hero Interactive Pillars */}
+            <div className="hero-pillars">
+              <div className="pillar-card">
+                <div className="pillar-icon-box cyan">
+                  <ShieldCheck size={20} />
+                </div>
+                <div className="pillar-content">
+                  <h4>Permissionless Rescue</h4>
+                  <p>Stuck markets can be safely unlocked and refunded once the Scheduler expiry deadline passes.</p>
+                </div>
+              </div>
+
+              <div className="pillar-card">
+                <div className="pillar-icon-box emerald">
+                  <RotateCcw size={20} />
+                </div>
+                <div className="pillar-content">
+                  <h4>3-Attempt Scheduled Retries</h4>
+                  <p>Transient oracle glitches never cause false NO outcomes. Retries roll fresh TEE executor seeds.</p>
+                </div>
+              </div>
+
+              <div className="pillar-card">
+                <div className="pillar-icon-box purple">
+                  <LockKeyhole size={20} />
+                </div>
+                <div className="pillar-content">
+                  <h4>Immutable Resolution Rules</h4>
+                  <p>Target, comparator, JQ expression, and oracle endpoints are cryptographically locked at inception.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Global Telemetry Metrics */}
+        <section className="telemetry-bar" aria-label="Ritual Chain Telemetry">
+          <div className="telemetry-item">
+            <div className="telemetry-icon emerald">
+              <Layers3 size={18} />
+            </div>
+            <div className="telemetry-data">
+              <span className="telemetry-label">Active / Total Markets</span>
+              <span className="telemetry-value">{activeMarkets} / {displayedMarkets.length}</span>
+              <span className="telemetry-sub">{live ? "On-Chain Live" : "Preview Fixtures"}</span>
+            </div>
+          </div>
+
+          <div className="telemetry-item">
+            <div className="telemetry-icon cyan">
+              <CircleDollarSign size={18} />
+            </div>
+            <div className="telemetry-data">
+              <span className="telemetry-label">Total Staked Volume</span>
+              <span className="telemetry-value">{formatRitual(totalPool)}</span>
+              <span className="telemetry-sub">Pari-mutuel Pools</span>
+            </div>
+          </div>
+
+          <div className="telemetry-item">
+            <div className="telemetry-icon purple">
+              <Gauge size={18} />
+            </div>
+            <div className="telemetry-data">
+              <span className="telemetry-label">Scheduler Gas Treasury</span>
+              <span className="telemetry-value">{live ? formatRitual(executionBalance) : "0.5000 RITUAL"}</span>
+              <span className="telemetry-sub">Prepaid Execution Balance</span>
+            </div>
+          </div>
+
+          <div className="telemetry-item">
+            <div className="telemetry-icon amber">
+              <Clock3 size={18} />
+            </div>
+            <div className="telemetry-data">
+              <span className="telemetry-label">Ritual Block Height</span>
+              <span className="telemetry-value">{blockNumber ? `#${blockNumber.toString()}` : "Syncing..."}</span>
+              <span className="telemetry-sub">~195ms Block Time</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Market Board Section */}
+        <section className="markets-section" id="markets">
+          <div className="markets-header">
+            <div className="markets-title-group">
+              <div className="section-eyebrow">
+                <Flame size={14} />
+                <span>Prediction Terminal</span>
+              </div>
+              <h2 className="section-main-title">Active Market Board</h2>
+            </div>
+
+            {/* Filter & Search Bar */}
+            <div className="markets-controls">
+              <div className="search-box">
+                <Search size={16} />
+                <input
+                  type="text"
+                  placeholder="Search question or ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button className="search-clear" onClick={() => setSearchQuery("")}>x</button>
+                )}
+              </div>
+
+              <div className="filter-pill-group">
+                {(
+                  [
+                    { key: "all", label: "All" },
+                    { key: "open", label: "Open" },
+                    { key: "resolving", label: "Resolving" },
+                    { key: "resolved", label: "Resolved" },
+                    { key: "invalid", label: "Invalid" },
+                  ] as const
+                ).map((tab) => (
+                  <button
+                    key={tab.key}
+                    className={`filter-btn ${filterState === tab.key ? "active" : ""}`}
+                    onClick={() => setFilterState(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {!live && (
+            <div className="preview-banner">
+              <Info size={18} />
+              <div>
+                <strong>Preview Mode Active</strong>
+                <p>Showing sample markets. Connect to a live Ritual node to execute real on-chain stakes and settlements.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Market Cards Grid */}
+          <div className="market-cards-grid">
+            {filteredMarkets.length === 0 ? (
+              <div className="empty-market-state">
+                <HelpCircle size={40} />
+                <h3>No markets match your filter</h3>
+                <p>Try resetting the search keyword or switching filter tabs.</p>
+                <button className="button hero-secondary-btn" onClick={() => { setFilterState("all"); setSearchQuery(""); }}>
+                  Reset Filters
+                </button>
+              </div>
+            ) : (
+              filteredMarkets.map((market) => {
+                const pool = market.totalYes + market.totalNo;
+                const yesPct = pool === 0n ? 50 : Number((market.totalYes * 10_000n) / pool) / 100;
+                const noPct = 100 - yesPct;
+                const canBet = live && account && market.state === 0 && blockNumber !== null && blockNumber < market.closeBlock;
+                const canClaim = live && account && market.stake && market.stake.claimable > 0n && !market.stake.settled;
+                const canRescue = live && account && market.rescueBlock && blockNumber !== null && blockNumber > market.rescueBlock && market.state < 3;
+                const isResolved = market.state === 3;
+                const isInvalid = market.state === 4;
+                const currentBet = betAmounts[market.id.toString()] ?? "0.1";
+
+                return (
+                  <article className={`market-card ${stateTone(market.state)}`} key={market.id.toString()}>
+                    <div className="card-top-row">
+                      <div className="card-id-tag">
+                        <span className="hash-symbol">#</span>
+                        <span>MARKET-{market.id.toString()}</span>
+                      </div>
+                      <div className={`badge-state ${stateTone(market.state)}`}>
+                        <span className="dot-indicator" />
+                        <span>{MARKET_STATE[market.state] ?? "Unknown"}</span>
+                      </div>
+                    </div>
+
+                    <h3 className="card-question">{market.question}</h3>
+
+                    {/* Condition Box */}
+                    <div className="condition-box">
+                      <Target size={15} className="condition-icon" />
+                      <div className="condition-text">
+                        <span className="condition-lead">Resolves YES if:</span>
+                        <code className="condition-code">
+                          Observed Value {COMPARATOR[market.comparator]} {market.target.toString()}
+                        </code>
+                      </div>
+                    </div>
+
+                    {/* Visual Odds / Ratio Gauge */}
+                    <div className="odds-gauge-container">
+                      <div className="odds-gauge-bar">
+                        <div className="odds-fill-yes" style={{ width: `${yesPct}%` }} />
+                        <div className="odds-fill-no" style={{ width: `${noPct}%` }} />
+                      </div>
+                      <div className="odds-labels-row">
+                        <div className="odds-item yes">
+                          <span className="legend-dot yes" />
+                          <span className="odds-name">YES</span>
+                          <span className="odds-percent">{yesPct.toFixed(1)}%</span>
+                          <span className="odds-amount">({formatRitual(market.totalYes)})</span>
+                        </div>
+                        <div className="odds-item no">
+                          <span className="odds-amount">({formatRitual(market.totalNo)})</span>
+                          <span className="odds-percent">{noPct.toFixed(1)}%</span>
+                          <span className="odds-name">NO</span>
+                          <span className="legend-dot no" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Metadata Strip */}
+                    <div className="card-meta-grid">
+                      <div className="meta-cell">
+                        <span className="meta-cell-label">Total Pool</span>
+                        <strong className="meta-cell-value">{formatRitual(pool)}</strong>
+                      </div>
+                      <div className="meta-cell">
+                        <span className="meta-cell-label">Scheduler Retries</span>
+                        <strong className="meta-cell-value">{market.attempts} / 3</strong>
+                      </div>
+                      <div className="meta-cell">
+                        <span className="meta-cell-label">Schedule ID</span>
+                        <strong className="meta-cell-value">#{market.scheduleId.toString()}</strong>
+                      </div>
+                    </div>
+
+                    {/* Settlement / Outcome Banner */}
+                    {isResolved && (
+                      <div className="outcome-banner success">
+                        <CheckCircle2 size={18} />
+                        <div>
+                          <strong>Outcome: {OUTCOME[market.outcome]}</strong>
+                          <span>Observed Oracle Value: {market.observedValue.toString()}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {isInvalid && (
+                      <div className="outcome-banner invalid">
+                        <AlertTriangle size={18} />
+                        <div>
+                          <strong>Market Invalidated</strong>
+                          <span>{market.invalidReason || "All participants eligible for full stake refund"}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Oracle Specification Snippet */}
+                    <div className="oracle-snippet">
+                      <div className="oracle-path">
+                        <Code2 size={13} />
+                        <span className="url-text" title={market.oracleUrl}>
+                          {market.oracleUrl.replace(/^https?:\/\//, "")}
+                        </span>
+                      </div>
+                      <span className="jq-tag">JQ: {market.jsonPath}</span>
+                    </div>
+
+                    {/* User Stake Info if Connected */}
+                    {market.stake && (market.stake.yes > 0n || market.stake.no > 0n) && (
+                      <div className="user-stake-box">
+                        <span className="stake-title">Your Stakes:</span>
+                        <span className="stake-badge yes">YES: {formatRitual(market.stake.yes)}</span>
+                        <span className="stake-badge no">NO: {formatRitual(market.stake.no)}</span>
+                      </div>
+                    )}
+
+                    {/* Staking & Action Controls */}
+                    <div className="card-actions-wrapper">
+                      <div className="stake-input-module">
+                        <div className="stake-input-header">
+                          <label htmlFor={`bet-${market.id}`}>Stake Amount</label>
+                          <div className="quick-presets">
+                            {["0.1", "0.5", "1.0", "5.0"].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                className="preset-btn"
+                                onClick={() => setBetAmounts((prev) => ({ ...prev, [market.id.toString()]: preset }))}
+                                disabled={!canBet}
+                              >
+                                +{preset}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="stake-input-field">
+                          <input
+                            id={`bet-${market.id}`}
+                            inputMode="decimal"
+                            value={currentBet}
+                            onChange={(e) => setBetAmounts((prev) => ({ ...prev, [market.id.toString()]: e.target.value }))}
+                            disabled={!canBet}
+                            placeholder="0.1"
+                          />
+                          <span className="currency-tag">RITUAL</span>
+                        </div>
+                      </div>
+
+                      <div className="binary-bet-buttons">
+                        <button
+                          className="bet-action-btn yes-btn"
+                          disabled={!canBet}
+                          onClick={() =>
+                            runTransaction("YES Stake", {
+                              functionName: "bet",
+                              args: [market.id, true],
+                              value: parseEther(currentBet),
+                            })
+                          }
+                        >
+                          <TrendingUp size={16} />
+                          <span>Stake YES</span>
+                        </button>
+
+                        <button
+                          className="bet-action-btn no-btn"
+                          disabled={!canBet}
+                          onClick={() =>
+                            runTransaction("NO Stake", {
+                              functionName: "bet",
+                              args: [market.id, false],
+                              value: parseEther(currentBet),
+                            })
+                          }
+                        >
+                          <ArrowRight size={16} />
+                          <span>Stake NO</span>
+                        </button>
+                      </div>
+
+                      {canClaim && (
+                        <button
+                          className="button claim-reward-btn full"
+                          onClick={() =>
+                            runTransaction(isInvalid ? "Claim Full Refund" : "Claim Settlement Winnings", {
+                              functionName: isInvalid ? "claimRefund" : "claimWinnings",
+                              args: [market.id],
+                            })
+                          }
+                        >
+                          <Sparkles size={16} />
+                          <span>{isInvalid ? "Claim Full Refund" : `Claim ${formatRitual(market.stake!.claimable)}`}</span>
+                        </button>
+                      )}
+
+                      {canRescue && (
+                        <button
+                          className="button rescue-action-btn full"
+                          onClick={() =>
+                            runTransaction("Rescue Expired Market", {
+                              functionName: "rescueExpiredMarket",
+                              args: [market.id],
+                            })
+                          }
+                        >
+                          <ShieldAlert size={16} />
+                          <span>Activate Safety Rescue & Unlock Refunds</span>
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        {/* Resolution Engine Architecture Breakdown */}
+        <section className="engine-section" id="resolution-engine">
+          <div className="engine-header">
+            <div className="section-eyebrow">
+              <Zap size={14} />
+              <span>Ritual-Native Execution Topology</span>
+            </div>
+            <h2 className="section-main-title">How Self-Resolving Execution Works</h2>
+            <p className="section-subtitle">
+              Every market is autonomous: creation books future execution blocks with Ritual Scheduler, and TEE workers securely resolve the outcome without human or bot intervention.
+            </p>
+          </div>
+
+          <div className="engine-grid">
+            <div className="engine-card">
+              <div className="engine-step-badge">STAGE 01</div>
+              <div className="engine-icon-box emerald">
+                <Clock3 size={24} />
+              </div>
+              <h3 className="engine-card-title">Scheduler Wake-up</h3>
+              <p className="engine-card-desc">
+                When created, the market books 3 scheduled executions with the Ritual Scheduler contract. No off-chain bot or keeper infrastructure is needed.
+              </p>
+            </div>
+
+            <div className="engine-card">
+              <div className="engine-step-badge">STAGE 02</div>
+              <div className="engine-icon-box cyan">
+                <ShieldCheck size={24} />
+              </div>
+              <h3 className="engine-card-title">TEE Executor Selection</h3>
+              <p className="engine-card-desc">
+                The on-chain TEEServiceRegistry selects an active, verifiable HTTP-capable executor for each attempt using randomized seeds.
+              </p>
+            </div>
+
+            <div className="engine-card">
+              <div className="engine-step-badge">STAGE 03</div>
+              <div className="engine-icon-box purple">
+                <Code2 size={24} />
+              </div>
+              <h3 className="engine-card-title">HTTP & JQ Precompiles</h3>
+              <p className="engine-card-desc">
+                The executor calls the HTTP precompile (0x0801) to fetch public API data, and the JQ precompile (0x0803) parses the target uint256 value.
+              </p>
+            </div>
+
+            <div className="engine-card">
+              <div className="engine-step-badge">STAGE 04</div>
+              <div className="engine-icon-box amber">
+                <CheckCircle2 size={24} />
+              </div>
+              <h3 className="engine-card-title">Settlement or Rescue</h3>
+              <p className="engine-card-desc">
+                The observed value determines YES or NO settlement. If 3 attempts fail or execution is stalled, the market unlocks full stakeholder refunds.
+              </p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Toast Notification HUD */}
       {notice && (
-        <div className={`notice ${notice.tone}`} role={notice.tone === "error" ? "alert" : "status"} aria-live="polite">
-          {notice.tone === "pending" ? <LoaderCircle className="spin" size={18} /> : notice.tone === "success" ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
-          <span>{notice.text}</span>
-          <button onClick={() => setNotice(null)} aria-label="Dismiss message">×</button>
+        <div className={`toast-notification ${notice.tone}`} role="alert" aria-live="polite">
+          <div className="toast-icon">
+            {notice.tone === "pending" ? (
+              <LoaderCircle className="spin" size={20} />
+            ) : notice.tone === "success" ? (
+              <CheckCircle2 size={20} />
+            ) : (
+              <AlertTriangle size={20} />
+            )}
+          </div>
+          <div className="toast-content">
+            <span className="toast-title">
+              {notice.tone === "pending" ? "Transaction Pending" : notice.tone === "success" ? "Success" : "Error"}
+            </span>
+            <p className="toast-text">{notice.text}</p>
+          </div>
+          <button className="toast-dismiss" onClick={() => setNotice(null)} aria-label="Dismiss notification">
+            x
+          </button>
         </div>
       )}
 
-      <section className="metrics-grid" aria-label="Market overview">
-        <Metric icon={<Layers3 />} label="Markets shown" value={String(displayedMarkets.length)} meta={live ? "On-chain" : "Preview dataset"} />
-        <Metric icon={<Activity />} label="Active markets" value={String(activeMarkets)} meta="Open, closed or resolving" />
-        <Metric icon={<CircleDollarSign />} label="Visible pool" value={formatRitual(totalPool)} meta="Across markets shown" />
-        <Metric icon={<Gauge />} label="Execution balance" value={live ? formatRitual(executionBalance) : "—"} meta={blockNumber ? `Block ${blockNumber}` : "Requires live contract"} />
-      </section>
-
-      <section className="section-block" id="markets">
-        <div className="section-heading">
-          <div><span className="section-kicker">Market board</span><h2>Resolution state at a glance</h2></div>
-          {!live && <div className="preview-note"><AlertTriangle size={16} /> Preview data is illustrative, not chain state.</div>}
+      {/* Footer */}
+      <footer className="footer-bar">
+        <div className="footer-inner">
+          <div className="footer-left">
+            <div className="footer-logo">
+              <Zap size={16} />
+              <strong>Ritual Predict</strong>
+            </div>
+            <span className="footer-copy">Built for Ritual Chain Workshop 2 - Proof of Building</span>
+          </div>
+          <div className="footer-right">
+            <a
+              href="https://github.com/duclucky/ritual-chain-workshop-2"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-link"
+            >
+              <span>GitHub Repository</span>
+              <ExternalLink size={14} />
+            </a>
+            <a
+              href="https://docs.ritualfoundation.org"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-link"
+            >
+              <span>Ritual Docs</span>
+              <ExternalLink size={14} />
+            </a>
+          </div>
         </div>
-        <div className="market-grid">
-          {displayedMarkets.map((market) => {
-            const pool = market.totalYes + market.totalNo;
-            const yesPct = pool === 0n ? 50 : Number((market.totalYes * 10_000n) / pool) / 100;
-            const canBet = live && account && market.state === 0 && blockNumber !== null && blockNumber < market.closeBlock;
-            const canClaim = live && account && market.stake && market.stake.claimable > 0n && !market.stake.settled;
-            const canRescue = live && account && market.rescueBlock && blockNumber !== null && blockNumber > market.rescueBlock && market.state < 3;
-            return (
-              <article className="market-card" key={market.id.toString()}>
-                <div className="market-card-top">
-                  <span className="market-id">MARKET #{market.id.toString()}</span>
-                  <span className={`state-badge ${stateTone(market.state)}`}>{MARKET_STATE[market.state] ?? "Unknown"}</span>
-                </div>
-                <h3>{market.question}</h3>
-                <div className="rule-line"><Target size={15} /><span>Resolve YES when observed <strong>{COMPARATOR[market.comparator]} {market.target.toString()}</strong></span></div>
+      </footer>
 
-                <div className="pool-bar" aria-label={`YES ${yesPct.toFixed(1)} percent, NO ${(100 - yesPct).toFixed(1)} percent`}>
-                  <div className="yes-fill" style={{ width: `${yesPct}%` }} />
-                </div>
-                <div className="pool-labels"><span><i className="dot yes" /> YES {yesPct.toFixed(1)}%</span><span>NO {(100 - yesPct).toFixed(1)}% <i className="dot no" /></span></div>
-
-                <div className="market-stats">
-                  <div><small>Total pool</small><strong>{formatRitual(pool)}</strong></div>
-                  <div><small>Attempts</small><strong>{market.attempts} / 3</strong></div>
-                  <div><small>Schedule</small><strong>#{market.scheduleId.toString()}</strong></div>
-                </div>
-
-                {market.state === 3 && <div className="resolution-result"><CheckCircle2 size={17} /><span>Resolved <strong>{OUTCOME[market.outcome]}</strong> at observed value <strong>{market.observedValue.toString()}</strong></span></div>}
-                {market.state === 4 && <div className="resolution-result invalid"><AlertTriangle size={17} /><span>Invalid: {market.invalidReason || "Refunds enabled"}</span></div>}
-
-                <div className="oracle-line"><Code2 size={14} /><span title={market.oracleUrl}>{market.oracleUrl.replace(/^https?:\/\//, "").slice(0, 32)}{market.oracleUrl.length > 40 ? "…" : ""}</span><span>{market.jsonPath}</span></div>
-
-                <div className="market-actions">
-                  <div className="bet-entry">
-                    <label htmlFor={`bet-${market.id}`}>Stake</label>
-                    <div><input id={`bet-${market.id}`} inputMode="decimal" value={betAmounts[market.id.toString()] ?? "0.1"} onChange={(e) => setBetAmounts((prev) => ({ ...prev, [market.id.toString()]: e.target.value }))} disabled={!canBet} /><span>RITUAL</span></div>
-                  </div>
-                  <div className="bet-buttons">
-                    <button className="button bet-yes" disabled={!canBet} onClick={() => runTransaction("YES bet", { functionName: "bet", args: [market.id, true], value: parseEther(betAmounts[market.id.toString()] ?? "0.1") })}>YES</button>
-                    <button className="button bet-no" disabled={!canBet} onClick={() => runTransaction("NO bet", { functionName: "bet", args: [market.id, false], value: parseEther(betAmounts[market.id.toString()] ?? "0.1") })}>NO</button>
-                  </div>
-                  {canClaim && <button className="button secondary full" onClick={() => runTransaction(market.state === 4 ? "Claim refund" : "Claim winnings", { functionName: market.state === 4 ? "claimRefund" : "claimWinnings", args: [market.id] })}>{market.state === 4 ? "Claim refund" : `Claim ${formatRitual(market.stake!.claimable)}`}</button>}
-                  {canRescue && <button className="button rescue full" onClick={() => runTransaction("Rescue expired market", { functionName: "rescueExpiredMarket", args: [market.id] })}><ShieldCheck size={16} /> Rescue & unlock refunds</button>}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="engine-section" id="resolution-engine">
-        <div className="section-heading"><div><span className="section-kicker">Ritual-native flow</span><h2>The resolution engine</h2></div></div>
-        <div className="engine-flow">
-          <EngineStep number="01" icon={<Clock3 />} title="Scheduler wakes" copy="createMarket books 3 executions up front. No off-chain keeper is required." />
-          <EngineStep number="02" icon={<ShieldCheck />} title="TEE executor selected" copy="The registry picks a live HTTP-capable executor for each attempt." />
-          <EngineStep number="03" icon={<ExternalLink />} title="HTTP + JQ" copy="A TEE fetches the public oracle. JQ extracts one uint256 from the response." />
-          <EngineStep number="04" icon={<CheckCircle2 />} title="Settle or refund" copy="YES/NO resolves pari-mutuel payouts. Exhausted retries or rescue produce refunds." />
-        </div>
-      </section>
-
-      <footer><span>Built for Ritual Bootcamp 2 · Proof of Building</span><a href="https://github.com/duclucky/ritual-chain-workshop-2" target="_blank" rel="noreferrer">View fork <ExternalLink size={14} /></a></footer>
-
+      {/* Create Market Modal */}
       {showCreate && (
         <CreateMarketDialog
           onClose={() => setShowCreate(false)}
           onSubmit={async (params) => {
-            await runTransaction("Create market", { functionName: "createMarket", args: [params] });
+            await runTransaction("Create Market", { functionName: "createMarket", args: [params] });
             setShowCreate(false);
           }}
         />
       )}
-    </main>
+    </div>
   );
 }
 
-function Metric({ icon, label, value, meta }: { icon: React.ReactNode; label: string; value: string; meta: string }) {
-  return <div className="metric-card"><div className="metric-icon">{icon}</div><div><small>{label}</small><strong>{value}</strong><span>{meta}</span></div></div>;
-}
-
-function EngineStep({ number, icon, title, copy }: { number: string; icon: React.ReactNode; title: string; copy: string }) {
-  return <article className="engine-step"><div className="engine-number">{number}</div><div className="engine-icon">{icon}</div><h3>{title}</h3><p>{copy}</p></article>;
-}
-
-function CreateMarketDialog({ onClose, onSubmit }: { onClose: () => void; onSubmit: (params: any) => Promise<void> }) {
+function CreateMarketDialog({
+  onClose,
+  onSubmit,
+}: {
+  onClose: () => void;
+  onSubmit: (params: any) => Promise<void>;
+}) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [form, setForm] = useState({ question: "", oracleUrl: "", jsonPath: ".price", target: "4000", comparator: "1", bettingSeconds: "300", resolveDelaySeconds: "60" });
+  const [form, setForm] = useState({
+    question: "",
+    oracleUrl: "",
+    jsonPath: ".price",
+    target: "4000",
+    comparator: "1",
+    bettingSeconds: "300",
+    resolveDelaySeconds: "60",
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const first = formRef.current?.querySelector<HTMLElement>("input, select, button");
     first?.focus();
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  function update(key: string, value: string) { setForm((prev) => ({ ...prev, [key]: value })); }
+  function update(key: string, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -507,16 +1091,98 @@ function CreateMarketDialog({ onClose, onSubmit }: { onClose: () => void; onSubm
   }
 
   return (
-    <div className="dialog-backdrop" role="presentation" onMouseDown={(e) => { if (e.currentTarget === e.target) onClose(); }}>
-      <section className="dialog" role="dialog" aria-modal="true" aria-labelledby="create-title">
-        <div className="dialog-heading"><div><span className="section-kicker">Immutable at creation</span><h2 id="create-title">Create a self-resolving market</h2></div><button className="icon-button" onClick={onClose} aria-label="Close create market dialog">×</button></div>
-        <form ref={formRef} onSubmit={submit} noValidate>
-          <Field label="Question" error={errors.question}><input value={form.question} onChange={(e) => update("question", e.target.value)} placeholder="Will ETH/USD be at least $4,000?" /></Field>
-          <Field label="Public oracle URL" error={errors.oracleUrl}><input value={form.oracleUrl} onChange={(e) => update("oracleUrl", e.target.value)} placeholder="https://api.example.com/eth" /></Field>
-          <div className="form-grid two"><Field label="JSON path" error={errors.jsonPath}><input value={form.jsonPath} onChange={(e) => update("jsonPath", e.target.value)} /></Field><Field label="Target" error={errors.target}><input inputMode="numeric" value={form.target} onChange={(e) => update("target", e.target.value)} /></Field></div>
-          <div className="form-grid three"><Field label="Comparator"><select value={form.comparator} onChange={(e) => update("comparator", e.target.value)}><option value="0">Greater than</option><option value="1">Greater or equal</option><option value="2">Less than</option><option value="3">Less or equal</option></select></Field><Field label="Betting seconds" error={errors.bettingSeconds}><input inputMode="numeric" value={form.bettingSeconds} onChange={(e) => update("bettingSeconds", e.target.value)} /></Field><Field label="Resolve delay" error={errors.resolveDelaySeconds}><input inputMode="numeric" value={form.resolveDelaySeconds} onChange={(e) => update("resolveDelaySeconds", e.target.value)} /></Field></div>
-          <div className="dialog-note"><LockKeyhole size={16} /><span>The oracle URL, JSON path, target, comparator and resolution blocks cannot be changed after creation.</span></div>
-          <div className="dialog-actions"><button type="button" className="button ghost" onClick={onClose}>Cancel</button><button className="button primary" type="submit"><Plus size={16} /> Create & schedule</button></div>
+    <div
+      className="dialog-backdrop"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.currentTarget === e.target) onClose();
+      }}
+    >
+      <section className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="create-title">
+        <div className="dialog-header">
+          <div className="dialog-title-group">
+            <span className="dialog-kicker">Immutable On-Chain Rule</span>
+            <h2 id="create-title">Create Autonomous Market</h2>
+          </div>
+          <button className="dialog-close-btn" onClick={onClose} aria-label="Close dialog">
+            x
+          </button>
+        </div>
+
+        <form ref={formRef} onSubmit={submit} noValidate className="dialog-form">
+          <Field label="Market Question" error={errors.question}>
+            <input
+              value={form.question}
+              onChange={(e) => update("question", e.target.value)}
+              placeholder="e.g. Will ETH/USD be at least $4,000?"
+            />
+          </Field>
+
+          <Field label="Public Oracle Endpoint (HTTPS)" error={errors.oracleUrl}>
+            <input
+              value={form.oracleUrl}
+              onChange={(e) => update("oracleUrl", e.target.value)}
+              placeholder="https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT"
+            />
+          </Field>
+
+          <div className="form-row-two">
+            <Field label="JSON Path Expression" error={errors.jsonPath}>
+              <input value={form.jsonPath} onChange={(e) => update("jsonPath", e.target.value)} placeholder=".price" />
+            </Field>
+            <Field label="Target Threshold (uint256)" error={errors.target}>
+              <input
+                inputMode="numeric"
+                value={form.target}
+                onChange={(e) => update("target", e.target.value)}
+                placeholder="4000"
+              />
+            </Field>
+          </div>
+
+          <div className="form-row-three">
+            <Field label="Comparator Condition">
+              <select value={form.comparator} onChange={(e) => update("comparator", e.target.value)}>
+                <option value="0">Greater than (&gt;)</option>
+                <option value="1">Greater or equal (≥)</option>
+                <option value="2">Less than (&lt;)</option>
+                <option value="3">Less or equal (≤)</option>
+              </select>
+            </Field>
+            <Field label="Betting Duration (seconds)" error={errors.bettingSeconds}>
+              <input
+                inputMode="numeric"
+                value={form.bettingSeconds}
+                onChange={(e) => update("bettingSeconds", e.target.value)}
+                placeholder="300"
+              />
+            </Field>
+            <Field label="Resolution Delay (seconds)" error={errors.resolveDelaySeconds}>
+              <input
+                inputMode="numeric"
+                value={form.resolveDelaySeconds}
+                onChange={(e) => update("resolveDelaySeconds", e.target.value)}
+                placeholder="60"
+              />
+            </Field>
+          </div>
+
+          <div className="dialog-immutable-warning">
+            <LockKeyhole size={18} />
+            <span>
+              All resolution parameters (oracle URL, JSON path, target condition, schedule delays) are immutable once submitted on-chain.
+            </span>
+          </div>
+
+          <div className="dialog-footer-actions">
+            <button type="button" className="button dialog-cancel-btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button className="button dialog-submit-btn" type="submit">
+              <Plus size={16} />
+              <span>Deploy & Schedule Market</span>
+            </button>
+          </div>
         </form>
       </section>
     </div>
@@ -525,8 +1191,24 @@ function CreateMarketDialog({ onClose, onSubmit }: { onClose: () => void; onSubm
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactElement }) {
   const id = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-  const control = cloneElement(children, { id, "aria-describedby": error ? `${id}-error` : undefined, "aria-invalid": Boolean(error) } as Record<string, unknown>);
-  return <label className="field" htmlFor={id}><span>{label}</span>{control}{error && <small className="field-error" id={`${id}-error`}>{error}</small>}</label>
+  const control = cloneElement(children, {
+    id,
+    "aria-describedby": error ? `${id}-error` : undefined,
+    "aria-invalid": Boolean(error),
+  } as Record<string, unknown>);
+  return (
+    <div className="form-field-group">
+      <label htmlFor={id} className="field-label">
+        <span>{label}</span>
+      </label>
+      {control}
+      {error && (
+        <small className="field-error-msg" id={`${id}-error`}>
+          {error}
+        </small>
+      )}
+    </div>
+  );
 }
 
 export default App;
