@@ -138,7 +138,7 @@ The current suite has **20 passing tests** (16 Solidity + 4 Node.js) covering su
 - **Live Vercel Deployment**: [https://ritual-predict-core.vercel.app](https://ritual-predict-core.vercel.app)
 - **GitHub Repository**: [https://github.com/duclucky/ritual-chain-workshop-2](https://github.com/duclucky/ritual-chain-workshop-2)
 
-This fork includes a full React/Vite frontend in [web/](web/) styled with the clean, modern Precog Markets Core design language. It reads the real `RitualPredict` ABI through viem, verifies the Ritual chain identity, lists on-chain markets, shows YES/NO pool composition and resolution state, supports all EVM wallets with auto-chain switching, and exposes create/bet/claim/refund/rescue actions.
+This fork includes a full React/Vite frontend in [web/](web/) styled with a clean, modern Web3 prediction market design language. It reads the real `RitualPredict` ABI through viem, verifies the Ritual chain identity, lists on-chain markets, shows YES/NO pool composition and resolution state, supports all EVM wallets with auto-chain switching, and exposes create/bet/claim/refund/rescue actions.
 
 When the Ritual RPC is unavailable, the UI switches to an explicitly labelled **Preview** dataset and disables on-chain writes instead of presenting mock data as chain state. For local proof, `hardhat/scripts/local-demo.ts` writes a gitignored `web/public/local-demo.json` so the browser automatically connects to the deployed local contract.
 

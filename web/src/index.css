@@ -9,7 +9,7 @@
   --font-body: "Space Grotesk", "Plus Jakarta Sans", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Precog Core Dark Theme Colors */
+  /* Ritual Core Dark Theme Colors */
   --bg-app: #0e0e11;
   --bg-sidebar: #09090b;
   --bg-nav: rgba(14, 14, 17, 0.88);
@@ -29,13 +29,13 @@
   --text-muted: #8e8e9c;
   --text-dim: #5a5a6a;
 
-  /* Signature Precog Gradient Colors */
-  --precog-purple: #887ED5;
-  --precog-purple-glow: rgba(136, 126, 213, 0.25);
-  --precog-teal: #37BE8D;
-  --precog-teal-glow: rgba(55, 190, 141, 0.25);
-  --precog-gradient: linear-gradient(135deg, #887ED5 0%, #37BE8D 100%);
-  --precog-gradient-hover: linear-gradient(135deg, #998fe0 0%, #45cca0 100%);
+  /* Signature Ritual Gradient Colors */
+  --ritual-purple: #887ED5;
+  --ritual-purple-glow: rgba(136, 126, 213, 0.25);
+  --ritual-teal: #37BE8D;
+  --ritual-teal-glow: rgba(55, 190, 141, 0.25);
+  --ritual-gradient: linear-gradient(135deg, #887ED5 0%, #37BE8D 100%);
+  --ritual-gradient-hover: linear-gradient(135deg, #998fe0 0%, #45cca0 100%);
 
   /* Functional Status Colors */
   --color-yes: #37BE8D;
@@ -122,7 +122,7 @@ a {
   top: -80px;
   left: 20px;
   z-index: 2000;
-  background: var(--precog-teal);
+  background: var(--ritual-teal);
   color: #022c22;
   font-weight: 700;
   padding: 10px 18px;
@@ -134,8 +134,8 @@ a {
   top: 20px;
 }
 
-/* Precog App Shell Layout */
-.precog-app {
+/* Ritual App Shell Layout */
+.ritual-app {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -143,7 +143,7 @@ a {
   position: relative;
 }
 
-.precog-main-layout {
+.ritual-main-layout {
   width: min(1360px, calc(100% - 40px));
   margin: 0 auto;
   flex: 1;
@@ -154,7 +154,7 @@ a {
    PRECOG TOPBAR NAVIGATION
    ========================================================================== */
 
-.precog-navbar {
+.ritual-navbar {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -164,7 +164,7 @@ a {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.precog-nav-inner {
+.ritual-nav-inner {
   width: min(1360px, calc(100% - 40px));
   margin: 0 auto;
   min-height: 74px;
@@ -174,36 +174,36 @@ a {
   gap: 20px;
 }
 
-.precog-brand {
+.ritual-brand {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
 }
 
-.precog-logo-glyph {
+.ritual-logo-glyph {
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  background: var(--precog-gradient);
+  background: var(--ritual-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 0 20px var(--precog-teal-glow);
+  box-shadow: 0 0 20px var(--ritual-teal-glow);
 }
 
 .glyph-icon {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
 }
 
-.precog-brand-titles {
+.ritual-brand-titles {
   display: flex;
   align-items: baseline;
   gap: 6px;
 }
 
-.precog-title {
+.ritual-title {
   font-family: var(--font-sans);
   font-size: 22px;
   font-weight: 700;
@@ -211,17 +211,17 @@ a {
   color: var(--text-white);
 }
 
-.precog-tag {
+.ritual-tag {
   font-size: 11px;
   font-weight: 600;
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   background: rgba(55, 190, 141, 0.1);
   padding: 2px 8px;
   border-radius: var(--radius-pill);
 }
 
 /* Center Search Hub */
-.precog-search-hub {
+.ritual-search-hub {
   position: relative;
   display: flex;
   align-items: center;
@@ -229,14 +229,14 @@ a {
   max-width: 440px;
 }
 
-.precog-search-hub .search-icon {
+.ritual-search-hub .search-icon {
   position: absolute;
   left: 14px;
   color: var(--text-muted);
   pointer-events: none;
 }
 
-.precog-search-hub input {
+.ritual-search-hub input {
   width: 100%;
   height: 42px;
   padding: 0 36px 0 40px;
@@ -248,11 +248,11 @@ a {
   transition: all 0.2s ease;
 }
 
-.precog-search-hub input:focus {
+.ritual-search-hub input:focus {
   outline: none;
-  border-color: var(--precog-teal);
+  border-color: var(--ritual-teal);
   background: var(--bg-card-hover);
-  box-shadow: 0 0 0 3px var(--precog-teal-glow);
+  box-shadow: 0 0 0 3px var(--ritual-teal-glow);
 }
 
 .search-clear-button {
@@ -263,14 +263,14 @@ a {
 }
 
 /* Nav Actions */
-.precog-nav-actions {
+.ritual-nav-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
 }
 
-.precog-action-btn {
+.ritual-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -283,14 +283,14 @@ a {
 }
 
 .launchpad-cta {
-  background: var(--precog-gradient);
+  background: var(--ritual-gradient);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 4px 16px var(--precog-teal-glow);
+  box-shadow: 0 4px 16px var(--ritual-teal-glow);
 }
 
 .launchpad-cta:hover:not(:disabled) {
-  background: var(--precog-gradient-hover);
+  background: var(--ritual-gradient-hover);
   transform: translateY(-1px);
   box-shadow: 0 6px 22px rgba(55, 190, 141, 0.4);
 }
@@ -307,7 +307,7 @@ a {
   border-color: var(--border-medium);
 }
 
-.precog-network-pill {
+.ritual-network-pill {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -320,13 +320,13 @@ a {
   border: 1px solid transparent;
 }
 
-.precog-network-pill.is-live {
+.ritual-network-pill.is-live {
   background: rgba(55, 190, 141, 0.1);
   border-color: rgba(55, 190, 141, 0.3);
   color: #45cca0;
 }
 
-.precog-network-pill.is-preview {
+.ritual-network-pill.is-preview {
   background: rgba(245, 158, 11, 0.1);
   border-color: rgba(245, 158, 11, 0.3);
   color: #fcd34d;
@@ -340,7 +340,7 @@ a {
   box-shadow: 0 0 8px currentColor;
 }
 
-.precog-wallet-btn {
+.ritual-wallet-btn {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -355,14 +355,14 @@ a {
   font-weight: 600;
 }
 
-.precog-wallet-btn:hover {
+.ritual-wallet-btn:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-medium);
   transform: translateY(-1px);
 }
 
 /* Console Drawer */
-.precog-console-drawer {
+.ritual-console-drawer {
   background: #111116;
   border-bottom: 1px solid var(--border-medium);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
@@ -395,7 +395,7 @@ a {
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   letter-spacing: 0.05em;
 }
 
@@ -460,7 +460,7 @@ a {
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
@@ -480,8 +480,8 @@ a {
 
 .drawer-field input:focus {
   outline: none;
-  border-color: var(--precog-teal);
-  box-shadow: 0 0 0 3px var(--precog-teal-glow);
+  border-color: var(--ritual-teal);
+  box-shadow: 0 0 0 3px var(--ritual-teal-glow);
 }
 
 .drawer-actions {
@@ -492,7 +492,7 @@ a {
 .apply-settings-btn {
   height: 42px;
   padding: 0 20px;
-  background: var(--precog-teal);
+  background: var(--ritual-teal);
   color: #022c22;
   font-weight: 700;
   font-size: 13px;
@@ -524,11 +524,11 @@ a {
    SIGNATURE PRECOG HERO GRADIENT BANNER
    ========================================================================== */
 
-.precog-hero-banner {
+.ritual-hero-banner {
   margin-bottom: 24px;
   border-radius: var(--radius-2xl);
   overflow: hidden;
-  background: var(--precog-gradient);
+  background: var(--ritual-gradient);
   box-shadow: var(--shadow-banner);
   position: relative;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -645,7 +645,7 @@ a {
    CATEGORY FILTER PILLS RIBBON
    ========================================================================== */
 
-.precog-filter-ribbon {
+.ritual-filter-ribbon {
   margin-bottom: 24px;
 }
 
@@ -692,7 +692,7 @@ a {
   box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
 }
 
-.precog-preview-strip {
+.ritual-preview-strip {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -719,17 +719,17 @@ a {
    PRECOG MARKET CARDS GRID & CARDS
    ========================================================================== */
 
-.precog-cards-arena {
+.ritual-cards-arena {
   margin-bottom: 60px;
 }
 
-.precog-grid-layout {
+.ritual-grid-layout {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 20px;
 }
 
-.precog-empty-state {
+.ritual-empty-state {
   text-align: center;
   padding: 70px 20px;
   background: var(--bg-card);
@@ -741,13 +741,13 @@ a {
   gap: 12px;
 }
 
-.precog-empty-state h3 {
+.ritual-empty-state h3 {
   font-size: 19px;
   font-weight: 700;
   color: var(--text-white);
 }
 
-.precog-empty-state p {
+.ritual-empty-state p {
   color: var(--text-muted);
   font-size: 13px;
 }
@@ -755,14 +755,14 @@ a {
 .reset-filter-btn {
   padding: 10px 22px;
   border-radius: var(--radius-pill);
-  background: var(--precog-gradient);
+  background: var(--ritual-gradient);
   color: #ffffff;
   font-weight: 700;
   font-size: 13px;
 }
 
-/* Precog Market Card */
-.precog-card {
+/* Ritual Market Card */
+.ritual-card {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -774,14 +774,14 @@ a {
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.precog-card:hover {
+.ritual-card:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-medium);
   transform: translateY(-3px);
   box-shadow: var(--shadow-card-hover);
 }
 
-.precog-card-header {
+.ritual-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -798,7 +798,7 @@ a {
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--precog-purple);
+  color: var(--ritual-purple);
   background: rgba(136, 126, 213, 0.12);
   padding: 3px 9px;
   border-radius: var(--radius-pill);
@@ -818,7 +818,7 @@ a {
   gap: 8px;
 }
 
-.precog-badge {
+.ritual-badge {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -849,7 +849,7 @@ a {
   background: rgba(251, 191, 36, 0.12);
 }
 
-.precog-card-title {
+.ritual-card-title {
   font-family: var(--font-sans);
   font-size: clamp(17px, 1.7vw, 20px);
   font-weight: 700;
@@ -858,7 +858,7 @@ a {
   margin-bottom: 12px;
 }
 
-.precog-criteria-pill {
+.ritual-criteria-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -872,7 +872,7 @@ a {
 }
 
 /* Odds Module */
-.precog-odds-module {
+.ritual-odds-module {
   margin-bottom: 18px;
 }
 
@@ -937,7 +937,7 @@ a {
 }
 
 /* Stake Amount Controls */
-.precog-stake-controls {
+.ritual-stake-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -967,7 +967,7 @@ a {
 
 .stake-input-wrapper input:focus {
   outline: none;
-  border-color: var(--precog-teal);
+  border-color: var(--ritual-teal);
 }
 
 .stake-input-wrapper .unit {
@@ -976,7 +976,7 @@ a {
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   pointer-events: none;
 }
 
@@ -1001,7 +1001,7 @@ a {
 }
 
 /* Binary Action Buttons */
-.precog-binary-buttons {
+.ritual-binary-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
@@ -1097,10 +1097,10 @@ a {
 .user-stake-strip .tag.no { color: var(--color-no); font-weight: 700; }
 
 /* Claim and Rescue Buttons */
-.precog-claim-btn {
+.ritual-claim-btn {
   width: 100%;
   height: 42px;
-  background: var(--precog-gradient);
+  background: var(--ritual-gradient);
   color: #ffffff;
   font-weight: 700;
   font-size: 13px;
@@ -1112,12 +1112,12 @@ a {
   margin-bottom: 12px;
 }
 
-.precog-claim-btn:hover {
-  background: var(--precog-gradient-hover);
+.ritual-claim-btn:hover {
+  background: var(--ritual-gradient-hover);
   transform: translateY(-1px);
 }
 
-.precog-rescue-btn {
+.ritual-rescue-btn {
   width: 100%;
   height: 42px;
   background: rgba(245, 158, 11, 0.12);
@@ -1133,7 +1133,7 @@ a {
   margin-bottom: 12px;
 }
 
-.precog-rescue-btn:hover {
+.ritual-rescue-btn:hover {
   background: rgba(245, 158, 11, 0.22);
 }
 
@@ -1182,7 +1182,7 @@ a {
 }
 
 .jq-badge {
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   font-weight: 700;
 }
 
@@ -1203,7 +1203,7 @@ a {
 }
 
 /* Card Footer Strip */
-.precog-card-footer {
+.ritual-card-footer {
   margin-top: auto;
   display: flex;
   justify-content: space-between;
@@ -1235,7 +1235,7 @@ a {
    ARCHITECTURE & HOW IT WORKS SECTION
    ========================================================================== */
 
-.precog-architecture-section {
+.ritual-architecture-section {
   padding: 60px 0 72px;
   border-top: 1px solid var(--border-subtle);
 }
@@ -1253,7 +1253,7 @@ a {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   text-transform: uppercase;
   margin-bottom: 6px;
 }
@@ -1337,7 +1337,7 @@ a {
    FLOATING TOAST NOTIFICATION
    ========================================================================== */
 
-.precog-toast {
+.ritual-toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -1360,9 +1360,9 @@ a {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.precog-toast.pending { border-color: rgba(6, 182, 212, 0.45); }
-.precog-toast.success { border-color: rgba(55, 190, 141, 0.45); }
-.precog-toast.error { border-color: rgba(244, 63, 94, 0.45); }
+.ritual-toast.pending { border-color: rgba(6, 182, 212, 0.45); }
+.ritual-toast.success { border-color: rgba(55, 190, 141, 0.45); }
+.ritual-toast.error { border-color: rgba(244, 63, 94, 0.45); }
 
 .toast-body {
   display: flex;
@@ -1402,7 +1402,7 @@ a {
    CREATE MARKET LAUNCHPAD MODAL
    ========================================================================== */
 
-.precog-modal-backdrop {
+.ritual-modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1500;
@@ -1415,7 +1415,7 @@ a {
   overflow-y: auto;
 }
 
-.precog-modal-card {
+.ritual-modal-card {
   width: min(720px, 100%);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
@@ -1443,7 +1443,7 @@ a {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
-  color: var(--precog-purple);
+  color: var(--ritual-purple);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -1504,8 +1504,8 @@ a {
 .modal-form input:focus,
 .modal-form select:focus {
   outline: none;
-  border-color: var(--precog-teal);
-  box-shadow: 0 0 0 3px var(--precog-teal-glow);
+  border-color: var(--ritual-teal);
+  box-shadow: 0 0 0 3px var(--ritual-teal-glow);
 }
 
 .field-error-text {
@@ -1564,21 +1564,21 @@ a {
   gap: 8px;
   padding: 10px 24px;
   border-radius: var(--radius-pill);
-  background: var(--precog-gradient);
+  background: var(--ritual-gradient);
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 4px 18px var(--precog-teal-glow);
+  box-shadow: 0 4px 18px var(--ritual-teal-glow);
 }
 
 .modal-submit:hover {
-  background: var(--precog-gradient-hover);
+  background: var(--ritual-gradient-hover);
 }
 
 /* ==========================================================================
    FOOTER
    ========================================================================== */
 
-.precog-footer {
+.ritual-footer {
   border-top: 1px solid var(--border-subtle);
   background: #09090c;
   margin-top: auto;
@@ -1604,7 +1604,7 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--precog-teal);
+  color: var(--ritual-teal);
   font-family: var(--font-sans);
 }
 
@@ -1638,9 +1638,9 @@ a {
 }
 
 /* Helpers */
-.text-emerald { color: var(--precog-teal); }
+.text-emerald { color: var(--ritual-teal); }
 .text-cyan { color: var(--color-cyan); }
-.text-purple { color: var(--precog-purple); }
+.text-purple { color: var(--ritual-purple); }
 .text-amber { color: var(--color-amber); }
 .text-rose { color: var(--color-no); }
 .text-muted { color: var(--text-muted); }
@@ -1660,7 +1660,7 @@ a {
    ========================================================================== */
 
 @media (max-width: 1100px) {
-  .precog-grid-layout {
+  .ritual-grid-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1683,15 +1683,15 @@ a {
 }
 
 @media (max-width: 780px) {
-  .precog-main-layout, .precog-nav-inner, .console-drawer-container, .footer-wrap {
+  .ritual-main-layout, .ritual-nav-inner, .console-drawer-container, .footer-wrap {
     width: calc(100% - 28px);
   }
 
-  .precog-tag, .btn-label, .expand-label {
+  .ritual-tag, .btn-label, .expand-label {
     display: none;
   }
 
-  .precog-search-hub {
+  .ritual-search-hub {
     max-width: 180px;
   }
 
@@ -1723,15 +1723,15 @@ a {
 }
 
 @media (max-width: 480px) {
-  .precog-search-hub {
+  .ritual-search-hub {
     display: none;
   }
 
-  .precog-binary-buttons {
+  .ritual-binary-buttons {
     grid-template-columns: 1fr;
   }
 
-  .precog-stake-controls {
+  .ritual-stake-controls {
     flex-direction: column;
     align-items: stretch;
   }
@@ -1740,7 +1740,7 @@ a {
     justify-content: space-between;
   }
 
-  .precog-toast {
+  .ritual-toast {
     bottom: 14px;
     right: 14px;
     width: calc(100vw - 28px);

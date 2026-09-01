@@ -532,25 +532,25 @@ function App() {
   }, [displayedMarkets, filterCategory, searchQuery, favorites]);
 
   return (
-    <div className="precog-app">
+    <div className="ritual-app">
       <a className="skip-link" href="#markets">Skip to markets</a>
 
       {/* Top Navigation Bar */}
-      <header className="precog-navbar">
-        <div className="precog-nav-inner">
+      <header className="ritual-navbar">
+        <div className="ritual-nav-inner">
           {/* Logo Brand */}
-          <a className="precog-brand" href="#top">
-            <div className="precog-logo-glyph">
+          <a className="ritual-brand" href="#top">
+            <div className="ritual-logo-glyph">
               <Zap size={20} className="glyph-icon" />
             </div>
-            <div className="precog-brand-titles">
-              <span className="precog-title">Ritual Predict</span>
-              <span className="precog-tag">Autonomous Core</span>
+            <div className="ritual-brand-titles">
+              <span className="ritual-title">Ritual Predict</span>
+              <span className="ritual-tag">Autonomous Core</span>
             </div>
           </a>
 
           {/* Center Search Bar */}
-          <div className="precog-search-hub">
+          <div className="ritual-search-hub">
             <Search size={16} className="search-icon" />
             <input
               type="text"
@@ -566,9 +566,9 @@ function App() {
           </div>
 
           {/* Right Controls */}
-          <div className="precog-nav-actions">
+          <div className="ritual-nav-actions">
             <button
-              className="precog-action-btn launchpad-cta"
+              className="ritual-action-btn launchpad-cta"
               onClick={() => setShowCreate(true)}
               disabled={!live}
             >
@@ -577,7 +577,7 @@ function App() {
             </button>
 
             <button
-              className="precog-action-btn config-btn"
+              className="ritual-action-btn config-btn"
               onClick={() => setShowConfig(!showConfig)}
               title="Protocol Console"
             >
@@ -585,12 +585,12 @@ function App() {
               <span className="btn-label">Console</span>
             </button>
 
-            <div className={`precog-network-pill ${live ? "is-live" : "is-preview"}`}>
+            <div className={`ritual-network-pill ${live ? "is-live" : "is-preview"}`}>
               <span className="network-dot" />
               <span>{live ? "Ritual (1979)" : "Preview Mode"}</span>
             </div>
 
-            <button className="precog-wallet-btn" onClick={connectWallet}>
+            <button className="ritual-wallet-btn" onClick={connectWallet}>
               <Wallet size={16} />
               <span>{account ? shortAddress(account) : "Connect Wallet"}</span>
             </button>
@@ -599,7 +599,7 @@ function App() {
 
         {/* Expandable Protocol Node Console */}
         {showConfig && (
-          <div className="precog-console-drawer">
+          <div className="ritual-console-drawer">
             <div className="console-drawer-container">
               <div className="drawer-top-row">
                 <div className="drawer-heading">
@@ -667,9 +667,9 @@ function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="precog-main-layout">
+      <main className="ritual-main-layout">
         {/* Signature Gradient Hero Banner */}
-        <section className="precog-hero-banner" id="top">
+        <section className="ritual-hero-banner" id="top">
           <div className="banner-glass-inner">
             <div className="banner-content-row">
               <div className="banner-titles">
@@ -720,7 +720,7 @@ function App() {
         </section>
 
         {/* Categories / Navigation Pill Bar */}
-        <section className="precog-filter-ribbon">
+        <section className="ritual-filter-ribbon">
           <div className="category-pills-list">
             {[
               { key: "all", label: "All Markets", icon: <Layers3 size={15} /> },
@@ -746,7 +746,7 @@ function App() {
 
         {/* Offline / Preview Mode Notice */}
         {!live && (
-          <div className="precog-preview-strip">
+          <div className="ritual-preview-strip">
             <Info size={18} className="text-amber flex-shrink-0" />
             <div className="preview-text">
               <strong>Preview Mode Active</strong>
@@ -756,9 +756,9 @@ function App() {
         )}
 
         {/* Markets Cards Grid */}
-        <section className="precog-cards-arena" id="markets">
+        <section className="ritual-cards-arena" id="markets">
           {filteredMarkets.length === 0 ? (
-            <div className="precog-empty-state">
+            <div className="ritual-empty-state">
               <HelpCircle size={48} className="text-muted" />
               <h3>No markets found</h3>
               <p>Try searching for a different keyword or resetting your filter category.</p>
@@ -770,7 +770,7 @@ function App() {
               </button>
             </div>
           ) : (
-            <div className="precog-grid-layout">
+            <div className="ritual-grid-layout">
               {filteredMarkets.map((market) => {
                 const pool = market.totalYes + market.totalNo;
                 const yesPct = pool === 0n ? 50 : Number((market.totalYes * 10_000n) / pool) / 100;
@@ -787,15 +787,15 @@ function App() {
                 const isOracleOpen = Boolean(expandedOracle[market.id.toString()]);
 
                 return (
-                  <article className="precog-card" key={market.id.toString()}>
+                  <article className="ritual-card" key={market.id.toString()}>
                     {/* Card Header */}
-                    <div className="precog-card-header">
+                    <div className="ritual-card-header">
                       <div className="header-meta-left">
                         <span className="category-tag">{market.category || "Ritual"}</span>
                         <span className="market-id-chip">#{market.id.toString()}</span>
                       </div>
                       <div className="header-meta-right">
-                        <span className={`precog-badge ${stateColorClass(market.state)}`}>
+                        <span className={`ritual-badge ${stateColorClass(market.state)}`}>
                           {MARKET_STATE[market.state] ?? "Unknown"}
                         </span>
                         <button
@@ -810,16 +810,16 @@ function App() {
                     </div>
 
                     {/* Market Question */}
-                    <h3 className="precog-card-title">{market.question}</h3>
+                    <h3 className="ritual-card-title">{market.question}</h3>
 
                     {/* Criteria Box */}
-                    <div className="precog-criteria-pill">
+                    <div className="ritual-criteria-pill">
                       <Target size={13} className="text-emerald" />
                       <span>Resolves YES if value {COMPARATOR[market.comparator]} {market.target.toString()}</span>
                     </div>
 
                     {/* Dual Probability Bar */}
-                    <div className="precog-odds-module">
+                    <div className="ritual-odds-module">
                       <div className="odds-gauge-track">
                         <div className="gauge-fill-yes" style={{ width: `${yesPct}%` }} />
                         <div className="gauge-fill-no" style={{ width: `${noPct}%` }} />
@@ -842,7 +842,7 @@ function App() {
                     </div>
 
                     {/* Quick Stake Controls */}
-                    <div className="precog-stake-controls">
+                    <div className="ritual-stake-controls">
                       <div className="stake-input-wrapper">
                         <input
                           id={`bet-${market.id}`}
@@ -871,7 +871,7 @@ function App() {
                     </div>
 
                     {/* Binary Action Buttons (Buy YES / Buy NO) */}
-                    <div className="precog-binary-buttons">
+                    <div className="ritual-binary-buttons">
                       <button
                         className="bet-button yes-btn"
                         disabled={!canBet}
@@ -936,7 +936,7 @@ function App() {
                     {/* Claim or Rescue Action Buttons */}
                     {canClaim && (
                       <button
-                        className="button precog-claim-btn"
+                        className="button ritual-claim-btn"
                         onClick={() =>
                           runTransaction(isInvalid ? "Claim Refund" : "Claim Winnings", {
                             functionName: isInvalid ? "claimRefund" : "claimWinnings",
@@ -951,7 +951,7 @@ function App() {
 
                     {canRescue && (
                       <button
-                        className="button precog-rescue-btn"
+                        className="button ritual-rescue-btn"
                         onClick={() =>
                           runTransaction("Rescue Expired Market", {
                             functionName: "rescueExpiredMarket",
@@ -994,7 +994,7 @@ function App() {
                     </div>
 
                     {/* Card Footer Strip */}
-                    <div className="precog-card-footer">
+                    <div className="ritual-card-footer">
                       <div className="footer-metric">
                         <span className="label">Volume</span>
                         <span className="val">{formatRitual(pool)}</span>
@@ -1016,7 +1016,7 @@ function App() {
         </section>
 
         {/* How Self-Resolving Prediction Works */}
-        <section className="precog-architecture-section" id="resolution-engine">
+        <section className="ritual-architecture-section" id="resolution-engine">
           <div className="section-title-wrap">
             <span className="section-kicker">AUTONOMOUS ORCHESTRATION</span>
             <h2 className="section-title">How Self-Resolving Markets Work</h2>
@@ -1067,7 +1067,7 @@ function App() {
 
       {/* Floating Toast Notification */}
       {notice && (
-        <div className={`precog-toast ${notice.tone}`} role="alert" aria-live="polite">
+        <div className={`ritual-toast ${notice.tone}`} role="alert" aria-live="polite">
           <div className="toast-icon">
             {notice.tone === "pending" ? (
               <LoaderCircle className="spin-loop text-cyan" size={20} />
@@ -1088,7 +1088,7 @@ function App() {
       )}
 
       {/* Footer */}
-      <footer className="precog-footer">
+      <footer className="ritual-footer">
         <div className="footer-wrap">
           <div className="footer-left">
             <div className="footer-brand">
@@ -1184,13 +1184,13 @@ function CreateMarketDialog({
 
   return (
     <div
-      className="precog-modal-backdrop"
+      className="ritual-modal-backdrop"
       role="presentation"
       onMouseDown={(e) => {
         if (e.currentTarget === e.target) onClose();
       }}
     >
-      <section className="precog-modal-card" role="dialog" aria-modal="true" aria-labelledby="create-title">
+      <section className="ritual-modal-card" role="dialog" aria-modal="true" aria-labelledby="create-title">
         <div className="modal-header-strip">
           <div className="modal-title-group">
             <span className="modal-kicker">RITUAL LAUNCHPAD</span>

@@ -3,7 +3,7 @@
 > **Live Web Application**: [https://ritual-predict-core.vercel.app](https://ritual-predict-core.vercel.app)
 > **GitHub Repository**: [https://github.com/duclucky/ritual-chain-workshop-2](https://github.com/duclucky/ritual-chain-workshop-2)
 
-A reviewer-facing React/Vite frontend for the Bootcamp 2 fork, styled with the clean and modern Precog Markets Core design language. The UI is intentionally useful in two modes:
+A reviewer-facing React/Vite frontend for the Bootcamp 2 fork, styled with a clean and modern Web3 prediction market design language. The UI is intentionally useful in two modes:
 
 - **Live contract mode**: reads `RitualPredict` from a configured RPC/address and enables wallet actions.
 - **Preview mode**: if Ritual RPC is unavailable, shows clearly labelled illustrative market data while all on-chain writes remain disabled.
@@ -57,7 +57,7 @@ The app supports all injected EVM wallets (MetaMask, Rabby, OKX, Coinbase, Phant
 
 ## UX rules applied
 
-The UI follows the clean, modern Precog Markets Core design language: Space Grotesk typography, purple-to-emerald gradient hero banner, horizontal category filter ribbon, high-contrast YES/NO binary action buttons with live multiplier calculation, collapsible oracle transparency drawers, visible focus, minimum 44px interactive targets, explicit transaction feedback, reduced-motion support, and responsive layouts.
+The UI follows the clean, modern Web3 design system: Space Grotesk typography, purple-to-emerald gradient hero banner, horizontal category filter ribbon, high-contrast YES/NO binary action buttons with live multiplier calculation, collapsible oracle transparency drawers, visible focus, minimum 44px interactive targets, explicit transaction feedback, reduced-motion support, and responsive layouts.
 
 ## Verification
 
